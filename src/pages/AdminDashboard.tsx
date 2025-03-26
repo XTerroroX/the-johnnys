@@ -100,13 +100,12 @@ interface Barber {
   updated_at: string;
 }
 
+// Updated Booking interface to match the Supabase response
 interface Booking {
   id: number;
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
-  service: Service;
-  barber: Barber;
   service_id: number;
   barber_id: string;
   date: string;
@@ -115,6 +114,18 @@ interface Booking {
   status: 'confirmed' | 'completed' | 'cancelled';
   notes: string | null;
   created_at: string;
+  updated_at: string;
+  service: {
+    id: number;
+    name: string;
+    price: number;
+    duration: number;
+  };
+  barber: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // Validation schemas
@@ -219,7 +230,7 @@ const AdminDashboard = () => {
     }
   });
   
-  // Bookings data fetching with related data
+  // Bookings data fetching with related data - updated to correctly type the response
   const { 
     data: bookings = [], 
     isLoading: isLoadingBookings,
@@ -237,16 +248,25 @@ const AdminDashboard = () => {
         .order('date', { ascending: false });
         
       if (error) throw error;
-      return data as Booking[];
+      return data as unknown as Booking[]; // Cast with unknown first to satisfy TypeScript
     }
   });
   
   // Service mutations
   const createServiceMutation = useMutation({
     mutationFn: async (newService: z.infer<typeof serviceFormSchema>) => {
+      // Ensure required properties are included
+      const serviceToCreate = {
+        name: newService.name,
+        description: newService.description || null,
+        price: newService.price,
+        duration: newService.duration,
+        active: newService.active
+      };
+      
       const { data, error } = await supabase
         .from('services')
-        .insert([newService])
+        .insert([serviceToCreate]) // Pass as an array with one object
         .select()
         .single();
         
@@ -1301,3 +1321,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
