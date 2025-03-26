@@ -32,7 +32,7 @@ const Hero = () => {
               </Button>
             </Link>
             <Link to="/services">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto text-white border-white hover:bg-white/10">
+              <Button size="lg" className="w-full sm:w-auto">
                 Explore Services
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
