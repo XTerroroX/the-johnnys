@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -77,7 +76,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Type definitions
 interface Service {
   id: number;
   name: string;
@@ -100,7 +98,6 @@ interface Barber {
   updated_at: string;
 }
 
-// Updated Booking interface to match the Supabase response
 interface Booking {
   id: number;
   customer_name: string;
@@ -128,7 +125,6 @@ interface Booking {
   };
 }
 
-// Validation schemas
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: "Service name must be at least 2 characters." }),
   description: z.string().optional(),
@@ -166,7 +162,6 @@ const AdminDashboard = () => {
   const [barberFilter, setBarberFilter] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
   
-  // Check if user is authenticated and has superadmin role
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -177,7 +172,6 @@ const AdminDashboard = () => {
         return;
       }
       
-      // Check if user has superadmin role
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
@@ -193,7 +187,6 @@ const AdminDashboard = () => {
     checkAuth();
   }, [navigate]);
   
-  // Services data fetching
   const { 
     data: services = [], 
     isLoading: isLoadingServices,
@@ -211,7 +204,6 @@ const AdminDashboard = () => {
     }
   });
   
-  // Barbers data fetching
   const { 
     data: barbers = [], 
     isLoading: isLoadingBarbers,
@@ -230,7 +222,6 @@ const AdminDashboard = () => {
     }
   });
   
-  // Bookings data fetching with related data - updated to correctly type the response
   const { 
     data: bookings = [], 
     isLoading: isLoadingBookings,
@@ -248,14 +239,12 @@ const AdminDashboard = () => {
         .order('date', { ascending: false });
         
       if (error) throw error;
-      return data as unknown as Booking[]; // Cast with unknown first to satisfy TypeScript
+      return data as unknown as Booking[];
     }
   });
   
-  // Service mutations
   const createServiceMutation = useMutation({
     mutationFn: async (newService: z.infer<typeof serviceFormSchema>) => {
-      // Ensure required properties are included
       const serviceToCreate = {
         name: newService.name,
         description: newService.description || null,
@@ -266,7 +255,7 @@ const AdminDashboard = () => {
       
       const { data, error } = await supabase
         .from('services')
-        .insert([serviceToCreate]) // Pass as an array with one object
+        .insert([serviceToCreate])
         .select()
         .single();
         
@@ -331,10 +320,8 @@ const AdminDashboard = () => {
     }
   });
   
-  // Barber mutations
   const createBarberMutation = useMutation({
     mutationFn: async (newBarber: z.infer<typeof barberFormSchema>) => {
-      // First create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newBarber.email,
         password: newBarber.password,
@@ -347,7 +334,6 @@ const AdminDashboard = () => {
       
       if (authError) throw authError;
       
-      // The profile and availability will be created automatically via trigger
       return authData;
     },
     onSuccess: () => {
@@ -389,7 +375,6 @@ const AdminDashboard = () => {
   
   const deleteBarberMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Delete the auth user (this will cascade delete the profile due to our foreign key constraint)
       const { error } = await supabase.auth.admin.deleteUser(id);
       if (error) throw error;
     },
@@ -403,7 +388,6 @@ const AdminDashboard = () => {
     }
   });
   
-  // Booking mutation
   const updateBookingStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { data, error } = await supabase
@@ -425,7 +409,6 @@ const AdminDashboard = () => {
     }
   });
   
-  // Form handling
   const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
@@ -456,7 +439,6 @@ const AdminDashboard = () => {
     }
   });
   
-  // Reset form and open dialog for creating new service
   const handleAddNewService = () => {
     setSelectedService(null);
     serviceForm.reset({
@@ -469,7 +451,6 @@ const AdminDashboard = () => {
     setIsServiceDialogOpen(true);
   };
   
-  // Open dialog for editing existing service
   const handleEditService = (service: Service) => {
     setSelectedService(service);
     serviceForm.reset({
@@ -482,7 +463,6 @@ const AdminDashboard = () => {
     setIsServiceDialogOpen(true);
   };
   
-  // Reset form and open dialog for creating new barber
   const handleAddNewBarber = () => {
     setSelectedBarber(null);
     barberForm.reset({
@@ -494,7 +474,6 @@ const AdminDashboard = () => {
     setIsBarberDialogOpen(true);
   };
   
-  // Open dialog for editing existing barber
   const handleEditBarber = (barber: Barber) => {
     setSelectedBarber(barber);
     barberEditForm.reset({
@@ -505,7 +484,6 @@ const AdminDashboard = () => {
     setIsBarberDialogOpen(true);
   };
   
-  // Service form submission
   const onServiceSubmit = (values: z.infer<typeof serviceFormSchema>) => {
     if (selectedService) {
       updateServiceMutation.mutate({
@@ -517,12 +495,10 @@ const AdminDashboard = () => {
     }
   };
   
-  // Barber form submission
   const onBarberSubmit = (values: z.infer<typeof barberFormSchema>) => {
     createBarberMutation.mutate(values);
   };
   
-  // Barber edit form submission
   const onBarberEditSubmit = (values: z.infer<typeof barberEditFormSchema>) => {
     if (selectedBarber) {
       updateBarberMutation.mutate({
@@ -532,7 +508,6 @@ const AdminDashboard = () => {
     }
   };
   
-  // Filtering bookings
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
       booking.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -547,7 +522,6 @@ const AdminDashboard = () => {
     return matchesSearch && matchesDate && matchesBarber && matchesService;
   });
   
-  // Logout handler
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     
@@ -559,7 +533,6 @@ const AdminDashboard = () => {
     }
   };
   
-  // Show errors if data fetching fails
   useEffect(() => {
     if (servicesError) toast.error("Error loading services: " + (servicesError as Error).message);
     if (barbersError) toast.error("Error loading barbers: " + (barbersError as Error).message);
@@ -568,7 +541,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Mobile Header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
         <h1 className="font-display font-bold text-xl">Admin Dashboard</h1>
         <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -576,44 +548,40 @@ const AdminDashboard = () => {
         </Button>
       </header>
       
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-white dark:bg-slate-950 border-b p-4 animate-fade-in">
-          <nav className="space-y-2">
-            {[
-              { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", value: "dashboard" },
-              { icon: <Calendar className="h-5 w-5" />, label: "Bookings", value: "bookings" },
-              { icon: <Scissors className="h-5 w-5" />, label: "Services", value: "services" },
-              { icon: <UserPlus className="h-5 w-5" />, label: "Barbers", value: "barbers" },
-              { icon: <Settings className="h-5 w-5" />, label: "Settings", value: "settings" },
-            ].map((item) => (
-              <Button
-                key={item.value}
-                variant={activeTab === item.value ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => {
-                  setActiveTab(item.value);
-                  setMobileMenuOpen(false);
-                }}
-              >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
-              </Button>
-            ))}
+      <div className="lg:hidden bg-white dark:bg-slate-950 border-b p-4 animate-fade-in">
+        <nav className="space-y-2">
+          {[
+            { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", value: "dashboard" },
+            { icon: <Calendar className="h-5 w-5" />, label: "Bookings", value: "bookings" },
+            { icon: <Scissors className="h-5 w-5" />, label: "Services", value: "services" },
+            { icon: <UserPlus className="h-5 w-5" />, label: "Barbers", value: "barbers" },
+            { icon: <Settings className="h-5 w-5" />, label: "Settings", value: "settings" },
+          ].map((item) => (
             <Button
-              variant="ghost"
-              className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
-              onClick={handleLogout}
+              key={item.value}
+              variant={activeTab === item.value ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab(item.value);
+                setMobileMenuOpen(false);
+              }}
             >
-              <LogOut className="h-5 w-5" />
-              <span className="ml-2">Logout</span>
+              {item.icon}
+              <span className="ml-2">{item.label}</span>
             </Button>
-          </nav>
-        </div>
-      )}
-
+          ))}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="ml-2">Logout</span>
+          </Button>
+        </nav>
+      </div>
+      
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
           <div className="text-center p-4 border-b mb-6">
             <h1 className="font-display font-bold text-xl">Admin Dashboard</h1>
@@ -651,7 +619,6 @@ const AdminDashboard = () => {
           </div>
         </aside>
         
-        {/* Main Content */}
         <main className="flex-1 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="hidden">
@@ -662,7 +629,6 @@ const AdminDashboard = () => {
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
-            {/* Dashboard Tab */}
             <TabsContent value="dashboard" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -700,7 +666,6 @@ const AdminDashboard = () => {
               </div>
             </TabsContent>
             
-            {/* Bookings Tab */}
             <TabsContent value="bookings">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-3xl font-bold tracking-tight">Bookings</h2>
@@ -717,7 +682,9 @@ const AdminDashboard = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                  <FormLabel htmlFor="date-filter">Filter by Date</FormLabel>
+                  <label htmlFor="date-filter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Filter by Date
+                  </label>
                   <Input
                     id="date-filter"
                     type="date"
@@ -728,7 +695,9 @@ const AdminDashboard = () => {
                 </div>
                 
                 <div>
-                  <FormLabel htmlFor="barber-filter">Filter by Barber</FormLabel>
+                  <label htmlFor="barber-filter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Filter by Barber
+                  </label>
                   <select
                     id="barber-filter"
                     value={barberFilter}
@@ -743,7 +712,9 @@ const AdminDashboard = () => {
                 </div>
                 
                 <div>
-                  <FormLabel htmlFor="service-filter">Filter by Service</FormLabel>
+                  <label htmlFor="service-filter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Filter by Service
+                  </label>
                   <select
                     id="service-filter"
                     value={serviceFilter}
@@ -848,7 +819,6 @@ const AdminDashboard = () => {
               </div>
             </TabsContent>
             
-            {/* Services Tab */}
             <TabsContent value="services">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Services</h2>
@@ -916,7 +886,6 @@ const AdminDashboard = () => {
                 )}
               </div>
               
-              {/* Service Dialog */}
               <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
@@ -1027,7 +996,6 @@ const AdminDashboard = () => {
                 </DialogContent>
               </Dialog>
               
-              {/* Delete Service Confirmation */}
               <AlertDialog
                 open={isDeleteServiceDialogOpen}
                 onOpenChange={setIsDeleteServiceDialogOpen}
@@ -1053,7 +1021,6 @@ const AdminDashboard = () => {
               </AlertDialog>
             </TabsContent>
             
-            {/* Barbers Tab */}
             <TabsContent value="barbers">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Barbers</h2>
@@ -1113,7 +1080,6 @@ const AdminDashboard = () => {
                 )}
               </div>
               
-              {/* Add Barber Dialog */}
               <Dialog open={isBarberDialogOpen && !selectedBarber} onOpenChange={(open) => {
                 if (!open) setIsBarberDialogOpen(false);
               }}>
@@ -1202,7 +1168,6 @@ const AdminDashboard = () => {
                 </DialogContent>
               </Dialog>
               
-              {/* Edit Barber Dialog */}
               <Dialog open={isBarberDialogOpen && !!selectedBarber} onOpenChange={(open) => {
                 if (!open) setIsBarberDialogOpen(false);
               }}>
@@ -1274,7 +1239,6 @@ const AdminDashboard = () => {
                 </DialogContent>
               </Dialog>
               
-              {/* Delete Barber Confirmation */}
               <AlertDialog
                 open={isDeleteBarberDialogOpen}
                 onOpenChange={setIsDeleteBarberDialogOpen}
@@ -1300,7 +1264,6 @@ const AdminDashboard = () => {
               </AlertDialog>
             </TabsContent>
             
-            {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="p-8 text-center bg-white dark:bg-slate-950 rounded-lg border">
                 <Settings className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -1321,4 +1284,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
