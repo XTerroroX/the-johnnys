@@ -127,7 +127,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
-          id: string
+          id?: string
           image_url?: string | null
           name: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -176,6 +176,27 @@ export type Database = {
           name?: string
           price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
       }

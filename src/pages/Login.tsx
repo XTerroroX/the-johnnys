@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -46,28 +47,50 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, this would authenticate with Supabase
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
       
-      console.log('Login attempt:', values);
-      
-      // Simulate admin login for demo purposes
-      if (values.email === "admin@thejohnnys.com") {
-        toast.success("Welcome back, Admin!");
-        navigate('/admin-dashboard');
-      } 
-      // Simulate barber login for demo purposes
-      else if (values.email.includes("barber")) {
-        toast.success("Welcome back!");
-        navigate('/barber-dashboard');
-      } 
-      // Simulate failed login for any other email
-      else {
-        toast.error("Invalid credentials. Please try again.");
+      if (error) {
+        throw error;
       }
-    } catch (error) {
+
+      // Get the user's role from the profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching user role:', profileError);
+        toast.error("Authentication successful, but there was an issue fetching your role.");
+        return;
+      }
+      
+      console.log('Login successful:', data.user);
+      console.log('User role:', profileData.role);
+      
+      toast.success("Login successful!");
+      
+      // Redirect based on user role
+      if (profileData.role === 'superadmin') {
+        navigate('/admin-dashboard');
+      } else if (profileData.role === 'barber') {
+        navigate('/barber-dashboard');
+      } else {
+        // Default fallback
+        navigate('/');
+      }
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error("There was a problem logging in. Please try again.");
+      if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("There was a problem logging in. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
