@@ -56,8 +56,11 @@ const Login = () => {
       if (error) {
         throw error;
       }
-
-      // Get the user's role from the profile
+      
+      console.log('Login successful:', data.user);
+      
+      // Get the user's role using direct RLS-compliant query
+      // Using eq filter ensures we only get the user's own profile due to RLS
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -66,23 +69,26 @@ const Login = () => {
         
       if (profileError) {
         console.error('Error fetching user role:', profileError);
-        toast.error("Authentication successful, but there was an issue fetching your role.");
-        return;
-      }
-      
-      console.log('Login successful:', data.user);
-      console.log('User role:', profileData.role);
-      
-      toast.success("Login successful!");
-      
-      // Redirect based on user role
-      if (profileData.role === 'superadmin') {
-        navigate('/admin-dashboard');
-      } else if (profileData.role === 'barber') {
-        navigate('/barber-dashboard');
+        
+        // Attempt to use the function-based approach as fallback
+        const { data: roleData, error: roleError } = await supabase
+          .rpc('get_current_user_role');
+          
+        if (roleError) {
+          console.error('Error with fallback role fetch:', roleError);
+          toast.error("Authentication successful, but there was an issue fetching your role.");
+          setIsLoading(false);
+          return;
+        }
+        
+        // If we got the role via RPC function, proceed with that
+        console.log('User role (from RPC):', roleData);
+        redirectBasedOnRole(roleData);
       } else {
-        // Default fallback
-        navigate('/');
+        // We successfully got the profile with the role
+        console.log('User role (from profiles):', profileData.role);
+        toast.success("Login successful!");
+        redirectBasedOnRole(profileData.role);
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -93,6 +99,18 @@ const Login = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Helper function to redirect based on role
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'superadmin') {
+      navigate('/admin-dashboard');
+    } else if (role === 'barber') {
+      navigate('/barber-dashboard');
+    } else {
+      // Default fallback
+      navigate('/');
     }
   };
 
