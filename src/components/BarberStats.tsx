@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // Ensure this matches your type (usually a UUID as string)
+  barberId: string; // Typically a UUID stored as string
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -39,25 +39,26 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-
-        // Determine the current month for earnings, clients, and avg service time
         const now = new Date();
+
+        // Set date range for monthly statistics (earnings, clients served, avg. service time)
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch monthly bookings for the current barber
+        // Fetch monthly bookings for the given barber, joining the services table for cost info.
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
-          .select('customer_email, cost, start_time, end_time')
+          .select('customer_email, start_time, end_time, services ( cost )')
           .eq('barber_id', barberId)
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
         if (monthlyError) {
           console.error('Error fetching monthly bookings:', monthlyError);
+          setLoading(false);
+          return;
         }
 
-        // Fallback to empty array if no data
         const bookings = monthlyBookings || [];
 
         let totalRevenue = 0;
@@ -66,18 +67,22 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         let serviceCount = 0;
 
         bookings.forEach((booking: any) => {
-          if (booking.cost) {
-            totalRevenue += parseFloat(booking.cost);
+          // Use the cost from the joined services record (if exists)
+          if (booking.services && booking.services.cost) {
+            totalRevenue += parseFloat(booking.services.cost);
           }
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
           if (booking.start_time && booking.end_time) {
-            // Assume time is in "HH:MM:SS" format. Convert to minutes.
-            const startParts = booking.start_time.split(':').map(Number);
-            const endParts = booking.end_time.split(':').map(Number);
-            const startMinutes = startParts[0] * 60 + startParts[1] + (startParts[2] || 0) / 60;
-            const endMinutes = endParts[0] * 60 + endParts[1] + (endParts[2] || 0) / 60;
+            // Calculate duration in minutes from start_time and end_time (assumed format "HH:MM:SS")
+            const parseTime = (timeStr: string) => {
+              const parts = timeStr.split(':').map(Number);
+              return parts[0] * 60 + parts[1] + (parts[2] ? parts[2] / 60 : 0);
+            };
+
+            const startMinutes = parseTime(booking.start_time);
+            const endMinutes = parseTime(booking.end_time);
             const duration = endMinutes - startMinutes;
             if (duration > 0) {
               totalServiceTime += duration;
@@ -90,10 +95,9 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         const earningsFormatted = `$${totalRevenue.toFixed(2)}`;
         const clientsServed = clientSet.size;
 
-        // Fetch upcoming appointments for the next week
+        // For upcoming appointments (next 7 days)
         const nowISOString = now.toISOString();
         const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
         const { data: upcomingBookings, error: upcomingError } = await supabase
           .from('bookings')
           .select('id')
@@ -106,31 +110,31 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         }
         const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
-        // Build the live stats array
+        // Build the stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
             title: 'Your Earnings',
             value: earningsFormatted,
-            description: 'This month',
+            description: 'Total cost from appointments this month',
           },
           {
             icon: <Users className="h-4 w-4 text-muted-foreground" />,
             title: 'Clients Served',
             value: clientsServed.toString(),
-            description: 'This month',
+            description: 'Unique clients this month',
           },
           {
             icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
             title: 'Appointments',
             value: appointmentsCount.toString(),
-            description: 'Upcoming this week',
+            description: 'Upcoming in the next week',
           },
           {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
             title: 'Avg. Service Time',
             value: `${avgServiceTime} min`,
-            description: 'Average duration',
+            description: 'Average duration of appointments',
           },
         ];
 
