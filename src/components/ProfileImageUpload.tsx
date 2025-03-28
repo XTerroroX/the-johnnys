@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, User } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,59 +42,54 @@ const ProfileImageUpload = ({
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please upload an image file');
       return;
     }
-    
+
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size should be less than 5MB');
       return;
     }
-    
+
     setIsUploading(true);
-    
+
     try {
       // Create a unique file path with user ID
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
-      
-      // Upload image to Supabase Storage (ensure bucket 'barber_profiles' is correctly named and public)
-      const { data, error } = await supabase.storage
+
+      // Upload the file to the 'barber_profiles' bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('barber_profiles')
         .upload(filePath, file, {
           upsert: true,
-          contentType: file.type || 'image/jpeg' // Fallback to 'image/jpeg' if file.type is falsy
+          contentType: file.type || 'image/jpeg'
         });
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Upload success data:", data);
-      
-      // Get the public URL
+      if (uploadError) throw uploadError;
+
+      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('barber_profiles')
-        .getPublicUrl(data.path);
-      
-      const publicUrl = publicUrlData.publicUrl;
-      console.log("Public URL:", publicUrl);
-      
-      // Update user profile with new image URL
+        .getPublicUrl(uploadData.path);
+
+      let publicUrl = publicUrlData.publicUrl;
+      console.log("Raw Public URL:", publicUrl);
+
+      // Append cache-buster to ensure new image is fetched
+      publicUrl += `?cb=${Date.now()}`;
+
+      // Update user profile with the new URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ image_url: publicUrl })
         .eq('id', userId);
-      
-      if (updateError) {
-        throw updateError;
-      }
-      
-      // Call the callback with the new image URL
+      if (updateError) throw updateError;
+
+      // Call the callback with the new (cache-busted) URL
       onImageUpdated(publicUrl);
       toast.success('Profile image updated successfully');
     } catch (error: any) {
@@ -104,16 +99,19 @@ const ProfileImageUpload = ({
       setIsUploading(false);
     }
   };
-  
+
   return (
     <div className="flex flex-col items-center">
       <Avatar className={`${sizeClasses[size]} border-2 border-primary/20`}>
-        <AvatarImage src={currentImageUrl || undefined} alt={userName} />
+        <AvatarImage
+          src={currentImageUrl || undefined}
+          alt={userName}
+        />
         <AvatarFallback className="bg-primary/10 text-primary text-xl">
           {getInitials(userName)}
         </AvatarFallback>
       </Avatar>
-      
+
       {allowUpload && (
         <div className="mt-4">
           <input
@@ -125,8 +123,8 @@ const ProfileImageUpload = ({
             disabled={isUploading}
           />
           <label htmlFor="profile-image">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="cursor-pointer"
               disabled={isUploading}
