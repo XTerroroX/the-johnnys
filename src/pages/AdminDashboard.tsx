@@ -375,7 +375,8 @@ const AdminDashboard = () => {
   
   const deleteBarberMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.auth.admin.deleteUser(id);
+      // Cast supabase to 'any' to bypass TypeScript type-checking for the RPC call
+      const { data, error } = await (supabase as any).rpc('delete_barber_by_superadmin', { _id: id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -383,10 +384,11 @@ const AdminDashboard = () => {
       toast.success("Barber deleted successfully");
       setIsDeleteBarberDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Error deleting barber: ${error.message}`);
     }
   });
+  
   
   const updateBookingStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
