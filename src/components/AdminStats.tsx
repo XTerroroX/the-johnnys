@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Calendar, DollarSign, Users } from 'lucide-react';
+import { format } from 'date-fns';
 
 const StatCard = ({
   icon,
@@ -36,14 +37,13 @@ const AdminStats = () => {
       try {
         setLoading(true);
         const now = new Date();
-        // Define the current month range
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Query all bookings for the current month with a join on the services table for "price"
+        // Query all bookings for the current month and join with profiles (to get role) and services (to get price)
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('customer_email, services(price)')
+          .select('customer_email, services(price), profiles(role)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -53,14 +53,19 @@ const AdminStats = () => {
           return;
         }
 
-        // Ensure bookings is an array even if no data is returned
+        // Ensure we have an array
         const bookingList = bookings || [];
+
+        // Filter bookings to include only those whose related profile's role is "barber" or "superadmin"
+        const filteredBookings = bookingList.filter((booking: any) =>
+          booking.profiles && (booking.profiles.role === 'barber' || booking.profiles.role === 'superadmin')
+        );
 
         let totalRevenue = 0;
         const clientSet = new Set<string>();
-        const totalAppointments = bookingList.length;
+        const totalAppointments = filteredBookings.length;
 
-        bookingList.forEach((booking: any) => {
+        filteredBookings.forEach((booking: any) => {
           if (booking.services && booking.services.price) {
             totalRevenue += parseFloat(booking.services.price);
           }
@@ -69,14 +74,11 @@ const AdminStats = () => {
           }
         });
 
-        // Calculate the average service value (total revenue divided by total appointments)
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
-
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
         const activeClients = clientSet.size;
 
-        // Build the live stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -107,7 +109,6 @@ const AdminStats = () => {
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        // Set fallback stats (zeros) on error
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
