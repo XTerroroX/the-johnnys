@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
-import { format, addDays, isToday, isAfter, isBefore, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, addDays, isToday, isBefore, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -9,7 +8,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 interface BookingCalendarProps {
   selectedDate: Date | undefined;
@@ -19,16 +17,9 @@ interface BookingCalendarProps {
 const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   
-  // Generate available dates for the next 14 days
   const today = startOfDay(new Date());
-  const twoWeeksFromNow = addDays(today, 14);
-  
-  // In a real app, you would get this data from Supabase
-  const disabledDates = [
-    addDays(today, 2),
-    addDays(today, 7),
-  ];
 
+  // No disabledDates since the shop is open every day.
   // Date selection helper
   const handleDateSelect = (date: Date | undefined) => {
     onSelectDate(date);
@@ -52,13 +43,8 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
               mode="single"
               selected={selectedDate}
               onSelect={handleDateSelect}
-              disabled={(date) => 
-                isBefore(date, today) || 
-                isAfter(date, twoWeeksFromNow) ||
-                disabledDates.some(disabledDate => 
-                  format(disabledDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-                )
-              }
+              // Only disable past dates.
+              disabled={(date) => isBefore(date, today)}
               initialFocus
               className="pointer-events-auto"
             />
@@ -66,17 +52,17 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
         </Popover>
       </div>
 
-      {/* Date quick selection */}
+      {/* Optional Quick Selection Bar (currently showing 7 days starting today) */}
       <div className="relative flex items-center">
         <Button
           variant="ghost"
           size="icon"
           className="absolute left-0 z-10"
           onClick={() => {
-            // In a real app, implement date scrolling
+            // Implement date scrolling if desired
           }}
         >
-          <ChevronLeft className="h-4 w-4" />
+          {/* Left Chevron */}
         </Button>
         
         <div className="flex overflow-x-auto space-x-2 py-2 px-9 no-scrollbar">
@@ -84,9 +70,6 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
             const date = addDays(today, i);
             const formattedDate = format(date, 'EEE');
             const dayNumber = format(date, 'd');
-            const isDisabled = disabledDates.some(
-              disabledDate => format(disabledDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-            );
             
             return (
               <Button
@@ -95,11 +78,7 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
                   ? "default" 
                   : "outline"
                 }
-                className={cn(
-                  "flex-col h-auto min-w-[4rem] py-2",
-                  isDisabled && "opacity-50 cursor-not-allowed"
-                )}
-                disabled={isDisabled}
+                className="flex-col h-auto min-w-[4rem] py-2"
                 onClick={() => onSelectDate(date)}
               >
                 <span className="text-xs">{formattedDate}</span>
@@ -117,10 +96,10 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
           size="icon"
           className="absolute right-0 z-10"
           onClick={() => {
-            // In a real app, implement date scrolling
+            // Implement date scrolling if desired
           }}
         >
-          <ChevronRight className="h-4 w-4" />
+          {/* Right Chevron */}
         </Button>
       </div>
     </div>
