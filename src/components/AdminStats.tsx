@@ -40,10 +40,10 @@ const AdminStats = () => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch all bookings for the current month with joined services data
+        // Query all bookings for the current month, joining the full services record.
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('customer_email, service_id, services(price)')
+          .select('customer_email, service_id, services(*)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -53,34 +53,28 @@ const AdminStats = () => {
           return;
         }
 
+        // Ensure we have an array
         const bookingList = bookings || [];
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         const totalAppointments = bookingList.length;
 
-        // Loop over each booking, using the joined service data when available,
-        // otherwise falling back to querying the services table.
+        // Loop over each booking to calculate revenue and unique clients.
         for (const booking of bookingList) {
           let price = 0;
+          // Use the joined services data if available
           if (booking.services && booking.services.price) {
             price = parseFloat(booking.services.price);
-          } else if (booking.service_id) {
-            // Fallback: fetch service price for this booking if not joined
-            const { data: serviceData, error: serviceError } = await supabase
-              .from('services')
-              .select('price')
-              .eq('id', booking.service_id)
-              .single();
-            if (!serviceError && serviceData) {
-              price = parseFloat(serviceData.price);
-            }
-          }
+          } 
+          // (Optional fallback: if price is not available, you can query the services table separately.)
           totalRevenue += price;
+
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
         }
 
+        // Calculate the average service value.
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
