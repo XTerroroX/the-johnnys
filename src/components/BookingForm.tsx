@@ -106,21 +106,26 @@ const BookingForm = ({
       
       const duration = selectedService?.duration || 30;
       
+      // Format the selected date as "yyyy-MM-dd"
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
+      // Convert the selected time from 12-hour to 24-hour format ("HH:MM:SS")
       const time24h = convertTo24Hour(selectedTime);
       
-      const [hoursStr, minutesStr] = time24h.split(':');
-      let hours = parseInt(hoursStr);
-      let minutes = parseInt(minutesStr);
+      // Split into hours, minutes, and seconds
+      const [hoursStr, minutesStr, secondsStr] = time24h.split(':');
+      let hours = parseInt(hoursStr, 10);
+      let minutes = parseInt(minutesStr, 10);
       
+      // Calculate end time by adding duration minutes
       minutes += duration;
       if (minutes >= 60) {
         hours += Math.floor(minutes / 60);
         minutes = minutes % 60;
       }
       
-      const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      // Construct endTime in "HH:MM:SS" format (seconds default to "00")
+      const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
       
       console.log('Booking payload:', {
         barber_id: selectedBarber,
@@ -167,7 +172,8 @@ const BookingForm = ({
     }
   };
   
-  const convertTo24Hour = (time12h: string) => {
+  // Updated convertTo24Hour function that returns time in "HH:MM:SS" format
+  const convertTo24Hour = (time12h: string): string => {
     const [time, modifier] = time12h.split(' ');
     const [hours, minutes] = time.split(':');
     
@@ -179,7 +185,7 @@ const BookingForm = ({
       hourIn24 += 12;
     }
     
-    return `${hourIn24.toString().padStart(2, '0')}:${minutes}`;
+    return `${hourIn24.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
   };
   
   const formatCurrency = (amount: number) => {
@@ -196,6 +202,7 @@ const BookingForm = ({
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Form Fields */}
           <FormField
             control={form.control}
             name="name"
