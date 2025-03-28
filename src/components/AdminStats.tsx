@@ -39,10 +39,10 @@ const AdminStats = () => {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const startISO = startOfMonth.toISOString().split('T')[0]; // "yyyy-mm-dd"
+        const startISO = startOfMonth.toISOString().split('T')[0]; // Format: yyyy-mm-dd
         const endISO = endOfMonth.toISOString().split('T')[0];
 
-        // Call the custom RPC that bypasses RLS
+        // Call our custom RPC function that bypasses RLS
         const { data: bookings, error } = await supabase.rpc('get_all_bookings_for_admin', {
           _start: startISO,
           _end: endISO,
@@ -54,20 +54,16 @@ const AdminStats = () => {
           return;
         }
 
-        // If no bookings are returned, use an empty array
+        // bookings is expected to be an array of bookings with an extra "price" column
         const bookingList = bookings || [];
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         const totalAppointments = bookingList.length;
 
         bookingList.forEach((booking: any) => {
-          // Using joined services data might not be automatically available via the RPC.
-          // Therefore, we assume that each booking has a valid service_id that corresponds to a service.
-          // If services data is not available, you might consider extending the RPC.
-          // For now, we assume the RPC returns a nested 'services' object.
-          if (booking.services && booking.services.price) {
-            totalRevenue += parseFloat(booking.services.price);
-          }
+          // Use the top-level "price" column from the RPC result
+          const price = booking.price ? parseFloat(booking.price) : 0;
+          totalRevenue += price;
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
