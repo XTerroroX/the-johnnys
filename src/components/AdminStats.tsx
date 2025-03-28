@@ -40,10 +40,10 @@ const AdminStats = () => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Query all bookings for the current month and join with profiles (to get role) and services (to get price)
+        // Query all bookings for the current month with joined services data
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('customer_email, services(price), profiles(role)')
+          .select('customer_email, services(price)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -53,19 +53,14 @@ const AdminStats = () => {
           return;
         }
 
-        // Ensure we have an array
+        // If no bookings, default to empty array
         const bookingList = bookings || [];
-
-        // Filter bookings to include only those whose related profile's role is "barber" or "superadmin"
-        const filteredBookings = bookingList.filter((booking: any) =>
-          booking.profiles && (booking.profiles.role === 'barber' || booking.profiles.role === 'superadmin')
-        );
 
         let totalRevenue = 0;
         const clientSet = new Set<string>();
-        const totalAppointments = filteredBookings.length;
+        const totalAppointments = bookingList.length;
 
-        filteredBookings.forEach((booking: any) => {
+        bookingList.forEach((booking: any) => {
           if (booking.services && booking.services.price) {
             totalRevenue += parseFloat(booking.services.price);
           }
@@ -74,6 +69,7 @@ const AdminStats = () => {
           }
         });
 
+        // Calculate the average service value
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
@@ -109,6 +105,7 @@ const AdminStats = () => {
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching admin stats:', error);
+        // Fallback stats on error
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
