@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/form";
 import BarberStats from '@/components/BarberStats';
 import ProfileImageUpload from '@/components/ProfileImageUpload';
-import ChangePassword from '@/components/ChangePassword';
+import changePassword from '@/components/changePassword';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -633,7 +633,7 @@ const BarberDashboard = () => {
                   <CardTitle>Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ChangePassword />
+                  <changePassword />
                 </CardContent>
               </Card>
             </TabsContent>
