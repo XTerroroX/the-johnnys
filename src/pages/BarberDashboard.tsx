@@ -726,6 +726,7 @@ const BarberDashboard = () => {
         </main>
       </div>
     </div>
+  </>
   );
 };
 
