@@ -1,5 +1,5 @@
 // src/components/BarberDashboard.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -9,7 +9,10 @@ import {
   Clock,
   Search,
   X,
-  ChevronDown
+  ChevronDown,
+  CheckCircle,
+  XCircle,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -631,7 +634,6 @@ const BarberDashboard = () => {
                   <CardTitle>Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* ChangePassword component now renders the form */}
                   <changePassword />
                 </CardContent>
               </Card>
