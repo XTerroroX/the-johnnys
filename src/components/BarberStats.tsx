@@ -35,7 +35,6 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
   const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Define fetchStats as a callback so it can be used in the subscription
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
@@ -168,44 +167,43 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
     }
   }, [barberId]);
 
-  // Fetch stats initially and subscribe to real-time updates
   useEffect(() => {
+    if (!barberId) return; // Ensure barberId is defined before subscribing
+
+    // Initial fetch of stats
     fetchStats();
 
+    // Set up real-time subscription
     const subscription = supabase
       .from(`bookings:barber_id=eq.${barberId}`)
       .on('INSERT', payload => {
-        // When a new booking is inserted, re-fetch stats
         console.log('New booking inserted, updating stats...', payload);
         fetchStats();
       })
       .on('UPDATE', payload => {
-        // Also update on any booking update
         console.log('Booking updated, updating stats...', payload);
         fetchStats();
       })
       .subscribe();
 
     return () => {
-      supabase.removeSubscription(subscription);
+      subscription.unsubscribe();
     };
   }, [barberId, fetchStats]);
 
+  if (loading) return <div>Loading stats...</div>;
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {loading ? (
-        <div>Loading stats...</div>
-      ) : (
-        stats.map((stat, index) => (
-          <StatCard
-            key={index}
-            icon={stat.icon}
-            title={stat.title}
-            value={stat.value}
-            description={stat.description}
-          />
-        ))
-      )}
+      {stats.map((stat, index) => (
+        <StatCard
+          key={index}
+          icon={stat.icon}
+          title={stat.title}
+          value={stat.value}
+          description={stat.description}
+        />
+      ))}
     </div>
   );
 };
