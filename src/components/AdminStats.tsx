@@ -23,78 +23,112 @@ const StatCard = ({ icon, title, value, description }: {
 );
 
 const AdminStats = () => {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
+      try {
+        setLoading(true);
+        const now = new Date();
+        // Determine the current month's range
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-      // Determine start and end dates for the current month
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+        // Query bookings for the current month and join the services table for price info.
+        // Note: Adjust the join key to match your Supabase relationship name (here assumed to be "services").
+        const { data: bookings, error } = await supabase
+          .from('bookings')
+          .select(`customer_email, services(price)`)
+          .gte('date', startOfMonth)
+          .lte('date', endOfMonth);
 
-      // Query bookings for the current month and join the services (assuming a relationship exists)
-      const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select('customer_email, services ( cost )')
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
+        if (error) {
+          console.error('Error fetching bookings:', error);
+          setLoading(false);
+          return;
+        }
 
-      if (error) {
-        console.error('Error fetching bookings:', error);
+        // Ensure we work with an array even if no bookings are returned
+        const bookingsArray = bookings || [];
+
+        let totalRevenue = 0;
+        const clientSet = new Set<string>();
+        const totalAppointments = bookingsArray.length;
+
+        bookingsArray.forEach((booking: any) => {
+          if (booking.services && booking.services.price) {
+            totalRevenue += parseFloat(booking.services.price);
+          }
+          if (booking.customer_email) {
+            clientSet.add(booking.customer_email);
+          }
+        });
+
+        const avgServiceValue = totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
+        const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
+        const activeClients = clientSet.size;
+
+        const newStats = [
+          {
+            icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
+            title: 'Total Revenue',
+            value: totalRevenueFormatted,
+            description: 'Current Month Revenue',
+          },
+          {
+            icon: <Users className="h-4 w-4 text-muted-foreground" />,
+            title: 'Active Clients',
+            value: activeClients.toString(),
+            description: 'Unique clients this month',
+          },
+          {
+            icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
+            title: 'Appointments',
+            value: totalAppointments.toString(),
+            description: 'Total appointments this month',
+          },
+          {
+            icon: <BarChart className="h-4 w-4 text-muted-foreground" />,
+            title: 'Avg. Service Value',
+            value: `$${avgServiceValue}`,
+            description: 'Average service cost',
+          },
+        ];
+
+        setStats(newStats);
+      } catch (err) {
+        console.error('Error fetching admin stats:', err);
+        // Set fallback stat values in case of error.
+        setStats([
+          {
+            icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
+            title: 'Total Revenue',
+            value: '$0.00',
+            description: 'Current Month Revenue',
+          },
+          {
+            icon: <Users className="h-4 w-4 text-muted-foreground" />,
+            title: 'Active Clients',
+            value: '0',
+            description: 'Unique clients this month',
+          },
+          {
+            icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
+            title: 'Appointments',
+            value: '0',
+            description: 'Total appointments this month',
+          },
+          {
+            icon: <BarChart className="h-4 w-4 text-muted-foreground" />,
+            title: 'Avg. Service Value',
+            value: '$0.00',
+            description: 'Average service cost',
+          },
+        ]);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // Calculate stats based on fetched data
-      let totalRevenue = 0;
-      const clientSet = new Set<string>();
-      const totalAppointments = bookings.length;
-
-      bookings.forEach((booking: any) => {
-        if (booking.services && booking.services.cost) {
-          totalRevenue += parseFloat(booking.services.cost);
-        }
-        if (booking.customer_email) {
-          clientSet.add(booking.customer_email);
-        }
-      });
-
-      const avgServiceValue = totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : 0;
-      const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
-      const activeClients = clientSet.size;
-
-      const newStats = [
-        {
-          icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
-          title: 'Total Revenue',
-          value: totalRevenueFormatted,
-          description: 'Current Month Revenue',
-        },
-        {
-          icon: <Users className="h-4 w-4 text-muted-foreground" />,
-          title: 'Active Clients',
-          value: activeClients.toString(),
-          description: 'Unique clients this month',
-        },
-        {
-          icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
-          title: 'Appointments',
-          value: totalAppointments.toString(),
-          description: 'This month',
-        },
-        {
-          icon: <BarChart className="h-4 w-4 text-muted-foreground" />,
-          title: 'Avg. Service Value',
-          value: `$${avgServiceValue}`,
-          description: 'Average service cost',
-        },
-      ];
-
-      setStats(newStats);
-      setLoading(false);
     };
 
     fetchStats();
@@ -104,7 +138,7 @@ const AdminStats = () => {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats && stats.map((stat, index) => (
+      {stats.map((stat, index) => (
         <StatCard
           key={index}
           icon={stat.icon}
