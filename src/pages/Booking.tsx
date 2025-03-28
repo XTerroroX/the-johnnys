@@ -1,4 +1,4 @@
-
+// src/pages/Booking.tsx (or wherever your Booking component is located)
 import { useState, useEffect } from 'react';
 import { Check, Clock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -132,7 +132,10 @@ const Booking = () => {
                               )}
                             </div>
                             <h4 className="font-semibold">{barber.name}</h4>
-                            <p className="text-sm text-muted-foreground">{barber.specialty || 'Barber'}</p>
+
+                            {/* Removed the line that displayed "Barber" or specialty: 
+                                <p className="text-sm text-muted-foreground">{barber.specialty || 'Barber'}</p> 
+                            */}
                           </button>
                         ))}
                       </div>
