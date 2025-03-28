@@ -553,44 +553,67 @@ const BarberDashboard = () => {
               </Card>
             </TabsContent>
           
-            <TabsContent value="availability" className="space-y-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekly Schedule</CardTitle>
-                  <CardDescription>
-                    Set the days and times when you are available for appointments
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {isLoadingAvailability ? (
-                    <p className="text-center text-muted-foreground py-4">Loading availability...</p>
-                  ) : (
-                    <>
-                      {availability && availability.length > 0 ? (
-                        availability.map((day) => (
-                          <div key={day.id} className="flex items-center justify-between">
-                            <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
-                            <span className={day.is_available ? "text-green-600" : "text-red-500"}>
-                              {day.is_available ? (
-                                <>
-                                  {formatTime(day.start_time)} - {formatTime(day.end_time)}
-                                </>
-                              ) : (
-                                 "Unavailable"
-                              )}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-center text-muted-foreground py-4">
-                          No availability set. Please set your availability.
-                        </p>
-                      )}
-                    </>
+    <TabsContent value="availability" className="space-y-3">
+  <Card>
+    <CardHeader>
+      <CardTitle>Weekly Schedule</CardTitle>
+      <CardDescription>
+        Set the days and times when you are available for appointments.
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      {isLoadingAvailability ? (
+        <p className="text-center text-muted-foreground py-4">Loading availability...</p>
+      ) : (
+        <>
+          {availability && availability.length > 0 ? (
+            availability.map((day) => (
+              <div key={day.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                <div className="mb-2 sm:mb-0">
+                  <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <Switch
+                    id={`availability-${day.id}`}
+                    checked={day.is_available}
+                    onCheckedChange={(checked) => handleAvailabilityChange(day.id, checked)}
+                  />
+                  {day.is_available && (
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div>
+                        <Label htmlFor={`start-time-${day.id}`} className="text-sm">Start</Label>
+                        <Input
+                          id={`start-time-${day.id}`}
+                          type="time"
+                          value={day.start_time.substring(0, 5)}
+                          onChange={(e) => handleTimeChange(day.id, 'start_time', e.target.value)}
+                          className="w-32"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`end-time-${day.id}`} className="text-sm">End</Label>
+                        <Input
+                          id={`end-time-${day.id}`}
+                          type="time"
+                          value={day.end_time.substring(0, 5)}
+                          onChange={(e) => handleTimeChange(day.id, 'end_time', e.target.value)}
+                          className="w-32"
+                        />
+                      </div>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-muted-foreground py-4">No availability set. Please set your availability.</p>
+          )}
+        </>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
             
             <TabsContent value="settings">
               <div className="flex items-center justify-between mb-6">
