@@ -52,24 +52,24 @@ const TimeSlotPicker = ({
   
   // Fetch barber availability based on day of week
   const fetchBarberAvailability = async () => {
-    if (!selectedBarber || !selectedDate) return null;
-    
-    const dayOfWeek = selectedDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
-    
-    const { data, error } = await supabase
-      .from('barber_availability')
-      .select('*')
-      .eq('barber_id', selectedBarber)
-      .eq('day_of_week', dayOfWeek)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching barber availability:', error);
-      return null;
-    }
-    
-    return data;
-  };
+  if (!selectedBarber || !selectedDate) return null;
+
+  const dayOfWeek = selectedDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+
+  const { data, error } = await supabase
+    .from('barber_availability')
+    .select('*')
+    .eq('barber_id', selectedBarber)
+    .eq('day_of_week', dayOfWeek)
+    .single();
+
+  if (error || !data) {
+    // If no record is found (e.g. superadmin), assume default availability.
+    return { is_available: true, start_time: '09:00:00', end_time: '17:00:00' };
+  }
+
+  return data;
+};
   
   // Fetch existing bookings for the selected date and barber
   const fetchExistingBookings = async () => {
