@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
@@ -26,28 +25,30 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    // Check for current user
+    // Check for current user/session
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
         
-        // Check if user is a barber and fetch profile data
+        // Fetch the profile
         const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-          
+        
         if (data) {
           setProfileData(data);
           if (data.role === 'barber') {
             setIsBarber(true);
+          } else if (data.role === 'superadmin') {
+            // You can decide if you treat superadmin like a barber or not
+            // setIsBarber(true);
           }
         }
       }
     };
-    
     checkUser();
     
     // Listen for auth changes
@@ -55,14 +56,11 @@ const Navbar = () => {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           setUser(session.user);
-          
-          // Check if user is a barber and fetch profile data
           const { data } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-            
           if (data) {
             setProfileData(data);
             if (data.role === 'barber') {
@@ -107,7 +105,7 @@ const Navbar = () => {
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo: "The Johnnys" */}
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-2xl font-display font-bold">
               The Johnnys
@@ -130,24 +128,25 @@ const Navbar = () => {
             ))}
           </nav>
 
-          {/* CTA / Auth */}
+          {/* Auth Buttons / Profile */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
                 {isBarber && (
                   <BarberNotifications barberId={user.id} />
                 )}
-                <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} className="flex items-center space-x-2">
+                {/* Show name + avatar, removing the Dashboard button */}
+                <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8 border border-primary/20">
                     <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
                     <AvatarFallback className="bg-primary/10 text-primary text-xs">
                       {getInitials(profileData?.name || '')}
                     </AvatarFallback>
                   </Avatar>
-                  <Button variant="outline" size="sm" className="smooth-transition ml-2">
-                    Dashboard
-                  </Button>
-                </Link>
+                  <span className="font-medium">
+                    {profileData?.name || 'User'}
+                  </span>
+                </div>
               </>
             ) : (
               <Link to="/login">
@@ -195,6 +194,7 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            
             <div className="pt-4 flex flex-col space-y-4">
               {user ? (
                 <>
@@ -203,20 +203,18 @@ const Navbar = () => {
                       <BarberNotifications barberId={user.id} />
                     </div>
                   )}
-                  <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} onClick={() => setMobileMenuOpen(false)} className="flex items-center">
+                  {/* Show name + avatar instead of Dashboard link */}
+                  <div className="flex items-center">
                     <Avatar className="h-8 w-8 border border-primary/20 mr-2">
                       <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getInitials(profileData?.name || '')}
                       </AvatarFallback>
                     </Avatar>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-center smooth-transition"
-                    >
-                      Dashboard
-                    </Button>
-                  </Link>
+                    <span className="font-medium">
+                      {profileData?.name || 'User'}
+                    </span>
+                  </div>
                 </>
               ) : (
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
@@ -229,6 +227,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
               )}
+              
               <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full justify-center smooth-transition">
                   Book Now
