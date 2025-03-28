@@ -40,11 +40,10 @@ const AdminStats = () => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Query all bookings for the current month.
-        // Use services(*) to fetch all columns from the services table.
+        // Fetch all bookings for the current month with joined services data
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('customer_email, services(*)')
+          .select('customer_email, service_id, services(price)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -54,25 +53,33 @@ const AdminStats = () => {
           return;
         }
 
-        console.log('Bookings fetched:', bookings);
-
         const bookingList = bookings || [];
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         const totalAppointments = bookingList.length;
 
-        bookingList.forEach((booking: any) => {
-          // Use the service's price if available
-          const price =
-            booking?.services && booking.services.price
-              ? parseFloat(booking.services.price)
-              : 0;
+        // Loop over each booking, using the joined service data when available,
+        // otherwise falling back to querying the services table.
+        for (const booking of bookingList) {
+          let price = 0;
+          if (booking.services && booking.services.price) {
+            price = parseFloat(booking.services.price);
+          } else if (booking.service_id) {
+            // Fallback: fetch service price for this booking if not joined
+            const { data: serviceData, error: serviceError } = await supabase
+              .from('services')
+              .select('price')
+              .eq('id', booking.service_id)
+              .single();
+            if (!serviceError && serviceData) {
+              price = parseFloat(serviceData.price);
+            }
+          }
           totalRevenue += price;
-
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
-        });
+        }
 
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
