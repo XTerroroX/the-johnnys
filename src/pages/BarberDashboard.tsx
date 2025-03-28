@@ -299,7 +299,7 @@ const BarberDashboard = () => {
 
   return (
   <>
-    <Navbar />  {/* <- Add this line */}
+    <Navbar />
     
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Mobile header */}
