@@ -130,6 +130,7 @@ const BarberDashboard = () => {
     checkAuth();
   }, [navigate]);
 
+  // Fetch appointments
   const { 
     data: appointments = [], 
     isLoading: isLoadingAppointments 
@@ -151,6 +152,7 @@ const BarberDashboard = () => {
     enabled: !!barberProfile?.id
   });
 
+  // Fetch availability
   const { 
     data: availability = [], 
     isLoading: isLoadingAvailability 
@@ -169,6 +171,7 @@ const BarberDashboard = () => {
     enabled: !!barberProfile?.id
   });
 
+  // Update availability
   const updateAvailabilityMutation = useMutation({
     mutationFn: async ({ id, is_available, start_time, end_time }: { id: number, is_available: boolean, start_time?: string, end_time?: string }) => {
       const updateData: any = { 
@@ -190,11 +193,12 @@ const BarberDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['barber-availability', barberProfile?.id] });
       toast.success("Availability updated successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Error updating availability: ${error.message}`);
     }
   });
 
+  // Update appointment status
   const updateAppointmentStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { data, error } = await supabase
@@ -214,25 +218,27 @@ const BarberDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['barber-appointments', barberProfile?.id] });
       toast.success("Appointment status updated");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Error updating appointment: ${error.message}`);
     }
   });
 
+  // Filter appointments by search
   const filteredAppointments = appointments.filter(appointment => 
     appointment.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     appointment.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     appointment.service.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Separate upcoming vs past
   const upcomingAppointments = filteredAppointments.filter(
     appointment => appointment.status === 'confirmed'
   );
-
   const pastAppointments = filteredAppointments.filter(
     appointment => appointment.status === 'completed' || appointment.status === 'cancelled'
   );
 
+  // Format time for display
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
     const [hours, minutes] = timeString.split(':').map(Number);
@@ -241,6 +247,7 @@ const BarberDashboard = () => {
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
+  // Update start/end times
   const handleTimeChange = (availabilityId: number, field: 'start_time' | 'end_time', value: string) => {
     const formattedTime = value + ':00';
     updateAvailabilityMutation.mutate({ 
@@ -250,21 +257,26 @@ const BarberDashboard = () => {
     });
   };
 
+  // Toggle is_available
   const handleAvailabilityChange = (id: number, checked: boolean) => {
     updateAvailabilityMutation.mutate({ id, is_available: checked });
   };
 
+  // Mark an appointment as completed
   const handleMarkAsCompleted = (id: number) => {
     updateAppointmentStatusMutation.mutate({ id, status: 'completed' });
   };
 
+  // Cancel an appointment
   const handleCancelAppointment = (id: number) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       updateAppointmentStatusMutation.mutate({ id, status: 'cancelled' });
     }
   };
 
+  // Callback for ProfileImageUpload
   const handleProfileImageUpdated = (newImageUrl: string) => {
+    console.log("Updated image URL from ProfileImageUpload:", newImageUrl);
     setBarberProfile({
       ...barberProfile,
       image_url: newImageUrl
@@ -273,6 +285,7 @@ const BarberDashboard = () => {
     toast.success('Profile image updated successfully');
   };
 
+  // Logout
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -285,6 +298,7 @@ const BarberDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
         <h1 className="font-display font-bold text-xl">Barber Dashboard</h1>
         <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -327,6 +341,7 @@ const BarberDashboard = () => {
       )}
 
       <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Sidebar for large screens */}
         <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
           <div className="text-center p-4 border-b mb-6">
             <h1 className="font-display font-bold text-xl">Barber Dashboard</h1>
@@ -364,8 +379,10 @@ const BarberDashboard = () => {
           </div>
         </aside>
         
+        {/* Main Content */}
         <main className="flex-1 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            {/* Hidden because we handle tab switching manually */}
             <TabsList className="hidden">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="appointments">Appointments</TabsTrigger>
@@ -373,6 +390,7 @@ const BarberDashboard = () => {
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
+            {/* Dashboard Tab */}
             <TabsContent value="dashboard" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Your Dashboard</h2>
@@ -450,6 +468,7 @@ const BarberDashboard = () => {
               </div>
             </TabsContent>
             
+            {/* Appointments Tab */}
             <TabsContent value="appointments">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-3xl font-bold tracking-tight">Your Appointments</h2>
@@ -552,69 +571,83 @@ const BarberDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-          
-    <TabsContent value="availability" className="space-y-3">
-  <Card>
-    <CardHeader>
-      <CardTitle>Weekly Schedule</CardTitle>
-      <CardDescription>
-        Set the days and times when you are available for appointments.
-      </CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-3">
-      {isLoadingAvailability ? (
-        <p className="text-center text-muted-foreground py-4">Loading availability...</p>
-      ) : (
-        <>
-          {availability && availability.length > 0 ? (
-            availability.map((day) => (
-              <div key={day.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                <div className="mb-2 sm:mb-0">
-                  <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <Switch
-                    id={`availability-${day.id}`}
-                    checked={day.is_available}
-                    onCheckedChange={(checked) => handleAvailabilityChange(day.id, checked)}
-                  />
-                  {day.is_available && (
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <div>
-                        <Label htmlFor={`start-time-${day.id}`} className="text-sm">Start</Label>
-                        <Input
-                          id={`start-time-${day.id}`}
-                          type="time"
-                          value={day.start_time.substring(0, 5)}
-                          onChange={(e) => handleTimeChange(day.id, 'start_time', e.target.value)}
-                          className="w-32"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`end-time-${day.id}`} className="text-sm">End</Label>
-                        <Input
-                          id={`end-time-${day.id}`}
-                          type="time"
-                          value={day.end_time.substring(0, 5)}
-                          onChange={(e) => handleTimeChange(day.id, 'end_time', e.target.value)}
-                          className="w-32"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-muted-foreground py-4">No availability set. Please set your availability.</p>
-          )}
-        </>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
 
-            
+            {/* Availability Tab */}
+            <TabsContent value="availability" className="space-y-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Weekly Schedule</CardTitle>
+                  <CardDescription>
+                    Set the days and times when you are available for appointments.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isLoadingAvailability ? (
+                    <p className="text-center text-muted-foreground py-4">Loading availability...</p>
+                  ) : (
+                    <>
+                      {availability && availability.length > 0 ? (
+                        availability.map((day) => (
+                          <div
+                            key={day.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                          >
+                            <div className="mb-2 sm:mb-0">
+                              <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <Switch
+                                id={`availability-${day.id}`}
+                                checked={day.is_available}
+                                onCheckedChange={(checked) => handleAvailabilityChange(day.id, checked)}
+                              />
+                              {day.is_available && (
+                                <div className="flex flex-col sm:flex-row items-center gap-4">
+                                  <div>
+                                    <Label htmlFor={`start-time-${day.id}`} className="text-sm">
+                                      Start
+                                    </Label>
+                                    <Input
+                                      id={`start-time-${day.id}`}
+                                      type="time"
+                                      value={day.start_time.substring(0, 5)}
+                                      onChange={(e) =>
+                                        handleTimeChange(day.id, 'start_time', e.target.value)
+                                      }
+                                      className="w-32"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`end-time-${day.id}`} className="text-sm">
+                                      End
+                                    </Label>
+                                    <Input
+                                      id={`end-time-${day.id}`}
+                                      type="time"
+                                      value={day.end_time.substring(0, 5)}
+                                      onChange={(e) =>
+                                        handleTimeChange(day.id, 'end_time', e.target.value)
+                                      }
+                                      className="w-32"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">
+                          No availability set. Please set your availability.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
@@ -634,6 +667,7 @@ const BarberDashboard = () => {
                           userName={barberProfile.name}
                           onImageUpdated={handleProfileImageUpdated}
                           size="lg"
+                          allowUpload={true}  // Explicitly set to true
                         />
                       </div>
                       
