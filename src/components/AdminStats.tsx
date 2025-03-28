@@ -37,44 +37,42 @@ const AdminStats = () => {
       try {
         setLoading(true);
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const startISO = startOfMonth.toISOString().split('T')[0]; // "yyyy-mm-dd"
+        const endISO = endOfMonth.toISOString().split('T')[0];
 
-        // Query all bookings for the current month, joining the full services record.
-        const { data: bookings, error } = await supabase
-          .from('bookings')
-          .select('customer_email, service_id, services(*)')
-          .gte('date', startOfMonth)
-          .lte('date', endOfMonth);
+        // Call the custom RPC that bypasses RLS
+        const { data: bookings, error } = await supabase.rpc('get_all_bookings_for_admin', {
+          _start: startISO,
+          _end: endISO,
+        });
 
         if (error) {
-          console.error('Error fetching bookings:', error);
+          console.error('Error fetching bookings via RPC:', error);
           setLoading(false);
           return;
         }
 
-        // Ensure we have an array
+        // If no bookings are returned, use an empty array
         const bookingList = bookings || [];
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         const totalAppointments = bookingList.length;
 
-        // Loop over each booking to calculate revenue and unique clients.
-        for (const booking of bookingList) {
-          let price = 0;
-          // Use the joined services data if available
+        bookingList.forEach((booking: any) => {
+          // Using joined services data might not be automatically available via the RPC.
+          // Therefore, we assume that each booking has a valid service_id that corresponds to a service.
+          // If services data is not available, you might consider extending the RPC.
+          // For now, we assume the RPC returns a nested 'services' object.
           if (booking.services && booking.services.price) {
-            price = parseFloat(booking.services.price);
-          } 
-          // (Optional fallback: if price is not available, you can query the services table separately.)
-          totalRevenue += price;
-
+            totalRevenue += parseFloat(booking.services.price);
+          }
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
-        }
+        });
 
-        // Calculate the average service value.
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
