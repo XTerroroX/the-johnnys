@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -45,6 +44,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import BarberStats from '@/components/BarberStats';
+import ProfileImageUpload from '@/components/ProfileImageUpload';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,7 +95,6 @@ const BarberDashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [barberProfile, setBarberProfile] = useState<any>(null);
   
-  // Check if user is authenticated and has barber role
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -106,7 +105,6 @@ const BarberDashboard = () => {
         return;
       }
       
-      // Fetch barber profile
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -135,7 +133,6 @@ const BarberDashboard = () => {
     checkAuth();
   }, [navigate]);
   
-  // Fetch barber's appointments
   const { 
     data: appointments = [], 
     isLoading: isLoadingAppointments 
@@ -159,7 +156,6 @@ const BarberDashboard = () => {
     enabled: !!barberProfile?.id
   });
   
-  // Fetch barber's availability
   const { 
     data: availability = [], 
     isLoading: isLoadingAvailability 
@@ -180,7 +176,6 @@ const BarberDashboard = () => {
     enabled: !!barberProfile?.id
   });
   
-  // Update availability mutation
   const updateAvailabilityMutation = useMutation({
     mutationFn: async ({ id, is_available, start_time, end_time }: { id: number, is_available: boolean, start_time?: string, end_time?: string }) => {
       const updateData: any = { 
@@ -210,7 +205,6 @@ const BarberDashboard = () => {
     }
   });
   
-  // Update appointment status mutation
   const updateAppointmentStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { data, error } = await supabase
@@ -220,7 +214,7 @@ const BarberDashboard = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .eq('barber_id', barberProfile?.id) // Security check: ensure barber can only update their own appointments
+        .eq('barber_id', barberProfile?.id)
         .select()
         .single();
         
@@ -236,7 +230,6 @@ const BarberDashboard = () => {
     }
   });
   
-  // Filtering appointments
   const filteredAppointments = appointments.filter(appointment => 
     appointment.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     appointment.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -251,46 +244,47 @@ const BarberDashboard = () => {
     appointment => appointment.status === 'completed' || appointment.status === 'cancelled'
   );
   
-  // Format time for display (from HH:MM:SS to HH:MM AM/PM)
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
-    // Extract hours and minutes from the time string
     const [hours, minutes] = timeString.split(':').map(Number);
-    // Format with AM/PM
     const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+    const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
   
-  // Handle time input changes
   const handleTimeChange = (availabilityId: number, field: 'start_time' | 'end_time', value: string) => {
-    // Add seconds to make it compatible with Postgres time format
     const formattedTime = value + ':00';
     updateAvailabilityMutation.mutate({ 
       id: availabilityId, 
-      is_available: true, // If changing time, assume day is available
+      is_available: true,
       [field]: formattedTime 
     });
   };
   
-  // Handle availability toggle
   const handleAvailabilityChange = (id: number, checked: boolean) => {
     updateAvailabilityMutation.mutate({ id, is_available: checked });
   };
   
-  // Handle marking appointment as completed
   const handleMarkAsCompleted = (id: number) => {
     updateAppointmentStatusMutation.mutate({ id, status: 'completed' });
   };
   
-  // Handle appointment cancellation
   const handleCancelAppointment = (id: number) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       updateAppointmentStatusMutation.mutate({ id, status: 'cancelled' });
     }
   };
   
-  // Logout handler
+  const handleProfileImageUpdated = (newImageUrl: string) => {
+    setBarberProfile({
+      ...barberProfile,
+      image_url: newImageUrl
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['barber-profile'] });
+    toast.success('Profile image updated successfully');
+  };
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     
@@ -304,7 +298,6 @@ const BarberDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Mobile Header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
         <h1 className="font-display font-bold text-xl">Barber Dashboard</h1>
         <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -312,7 +305,6 @@ const BarberDashboard = () => {
         </Button>
       </header>
       
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white dark:bg-slate-950 border-b p-4 animate-fade-in">
           <nav className="space-y-2">
@@ -348,7 +340,6 @@ const BarberDashboard = () => {
       )}
 
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
           <div className="text-center p-4 border-b mb-6">
             <h1 className="font-display font-bold text-xl">Barber Dashboard</h1>
@@ -386,7 +377,6 @@ const BarberDashboard = () => {
           </div>
         </aside>
         
-        {/* Main Content */}
         <main className="flex-1 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="hidden">
@@ -396,7 +386,6 @@ const BarberDashboard = () => {
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
-            {/* Dashboard Tab */}
             <TabsContent value="dashboard" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Your Dashboard</h2>
@@ -474,7 +463,6 @@ const BarberDashboard = () => {
               </div>
             </TabsContent>
             
-            {/* Appointments Tab */}
             <TabsContent value="appointments">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-3xl font-bold tracking-tight">Your Appointments</h2>
@@ -578,7 +566,6 @@ const BarberDashboard = () => {
               </Card>
             </TabsContent>
             
-            {/* Availability Tab */}
             <TabsContent value="availability">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Set Your Availability</h2>
@@ -656,7 +643,6 @@ const BarberDashboard = () => {
               </Card>
             </TabsContent>
             
-            {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
@@ -668,7 +654,17 @@ const BarberDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {barberProfile ? (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      <div className="flex flex-col items-center mb-6">
+                        <ProfileImageUpload
+                          userId={barberProfile.id}
+                          currentImageUrl={barberProfile.image_url}
+                          userName={barberProfile.name}
+                          onImageUpdated={handleProfileImageUpdated}
+                          size="lg"
+                        />
+                      </div>
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>

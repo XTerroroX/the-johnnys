@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import BarberNotifications from '@/components/BarberNotifications';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isBarber, setIsBarber] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,15 +32,18 @@ const Navbar = () => {
       if (session?.user) {
         setUser(session.user);
         
-        // Check if user is a barber
+        // Check if user is a barber and fetch profile data
         const { data } = await supabase
           .from('profiles')
-          .select('role')
+          .select('*')
           .eq('id', session.user.id)
           .single();
           
-        if (data && data.role === 'barber') {
-          setIsBarber(true);
+        if (data) {
+          setProfileData(data);
+          if (data.role === 'barber') {
+            setIsBarber(true);
+          }
         }
       }
     };
@@ -51,19 +56,23 @@ const Navbar = () => {
         if (event === 'SIGNED_IN' && session) {
           setUser(session.user);
           
-          // Check if user is a barber
+          // Check if user is a barber and fetch profile data
           const { data } = await supabase
             .from('profiles')
-            .select('role')
+            .select('*')
             .eq('id', session.user.id)
             .single();
             
-          if (data && data.role === 'barber') {
-            setIsBarber(true);
+          if (data) {
+            setProfileData(data);
+            if (data.role === 'barber') {
+              setIsBarber(true);
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setIsBarber(false);
+          setProfileData(null);
         }
       }
     );
@@ -72,6 +81,16 @@ const Navbar = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   const navigationItems = [
     { name: 'Home', path: '/' },
@@ -118,9 +137,14 @@ const Navbar = () => {
                 {isBarber && (
                   <BarberNotifications barberId={user.id} />
                 )}
-                <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"}>
-                  <Button variant="outline" size="sm" className="smooth-transition">
-                    <User className="w-4 h-4 mr-2" />
+                <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} className="flex items-center space-x-2">
+                  <Avatar className="h-8 w-8 border border-primary/20">
+                    <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      {getInitials(profileData?.name || '')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button variant="outline" size="sm" className="smooth-transition ml-2">
                     Dashboard
                   </Button>
                 </Link>
@@ -179,12 +203,17 @@ const Navbar = () => {
                       <BarberNotifications barberId={user.id} />
                     </div>
                   )}
-                  <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} onClick={() => setMobileMenuOpen(false)}>
+                  <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} onClick={() => setMobileMenuOpen(false)} className="flex items-center">
+                    <Avatar className="h-8 w-8 border border-primary/20 mr-2">
+                      <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {getInitials(profileData?.name || '')}
+                      </AvatarFallback>
+                    </Avatar>
                     <Button
                       variant="outline"
                       className="w-full justify-center smooth-transition"
                     >
-                      <User className="w-4 h-4 mr-2" />
                       Dashboard
                     </Button>
                   </Link>
