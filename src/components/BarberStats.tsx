@@ -28,22 +28,22 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // barberId as a UUID string
+  barberId: string; // Assuming barberId is a UUID string
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
   const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Function to fetch stats from Supabase
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const now = new Date();
-      // Define current month range
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-      // Fetch monthly bookings for this barber, joining the services table for price and duration.
+      // Fetch monthly bookings for this barber with joined services data (price & duration)
       const { data: monthlyBookings, error: monthlyError } = await supabase
         .from('bookings')
         .select(`customer_email, start_time, end_time, services(price,duration)`)
@@ -62,13 +62,13 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
       let serviceCount = 0;
 
       bookings.forEach((booking: any) => {
-        // Use the joined services.price (if available)
+        // Sum revenue from the joined services.price (if available)
         const price = booking?.services?.price ? parseFloat(booking.services.price) : 0;
         totalRevenue += price;
         if (booking.customer_email) {
           clientSet.add(booking.customer_email);
         }
-        // Use the joined services.duration if available, else fallback to calculated duration
+        // Use joined services.duration if available; else calculate from start_time/end_time
         if (booking?.services?.duration) {
           totalServiceTime += parseInt(booking.services.duration, 10);
           serviceCount++;
@@ -106,6 +106,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
       }
       const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
+      // Build the stats array
       const newStats = [
         {
           icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -167,27 +168,45 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
     }
   }, [barberId]);
 
+  // Set up real-time subscription using supabase.channel (v2 API)
   useEffect(() => {
-    if (!barberId) return; // Ensure barberId is defined before subscribing
-
+    if (!barberId) return;
     // Initial fetch of stats
     fetchStats();
 
-    // Set up real-time subscription
-    const subscription = supabase
-      .from(`bookings:barber_id=eq.${barberId}`)
-      .on('INSERT', payload => {
-        console.log('New booking inserted, updating stats...', payload);
-        fetchStats();
-      })
-      .on('UPDATE', payload => {
-        console.log('Booking updated, updating stats...', payload);
-        fetchStats();
-      })
+    // Create a new realtime channel for bookings for this barber
+    const channel = supabase
+      .channel('bookings-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings',
+          filter: `barber_id=eq.${barberId}`,
+        },
+        (payload) => {
+          console.log('New booking inserted, updating stats...', payload);
+          fetchStats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bookings',
+          filter: `barber_id=eq.${barberId}`,
+        },
+        (payload) => {
+          console.log('Booking updated, updating stats...', payload);
+          fetchStats();
+        }
+      )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [barberId, fetchStats]);
 
