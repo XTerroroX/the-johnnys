@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // Typically a UUID stored as string
+  barberId: string; // Assuming barberId is a UUID in string format
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -41,14 +41,14 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         setLoading(true);
         const now = new Date();
 
-        // Set date range for monthly statistics (earnings, clients served, avg. service time)
+        // For monthly stats (earnings, clients served, avg. service time)
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch monthly bookings for the given barber, joining the services table for cost info.
+        // Fetch bookings for the current month, joining the services table for cost info
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
-          .select('customer_email, start_time, end_time, services ( cost )')
+          .select('customer_email, start_time, end_time, services(cost)')
           .eq('barber_id', barberId)
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
@@ -67,7 +67,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         let serviceCount = 0;
 
         bookings.forEach((booking: any) => {
-          // Use the cost from the joined services record (if exists)
+          // Use the cost from the joined services record (if available)
           if (booking.services && booking.services.cost) {
             totalRevenue += parseFloat(booking.services.cost);
           }
@@ -75,12 +75,11 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             clientSet.add(booking.customer_email);
           }
           if (booking.start_time && booking.end_time) {
-            // Calculate duration in minutes from start_time and end_time (assumed format "HH:MM:SS")
+            // Convert "HH:MM:SS" to total minutes
             const parseTime = (timeStr: string) => {
               const parts = timeStr.split(':').map(Number);
               return parts[0] * 60 + parts[1] + (parts[2] ? parts[2] / 60 : 0);
             };
-
             const startMinutes = parseTime(booking.start_time);
             const endMinutes = parseTime(booking.end_time);
             const duration = endMinutes - startMinutes;
@@ -95,7 +94,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         const earningsFormatted = `$${totalRevenue.toFixed(2)}`;
         const clientsServed = clientSet.size;
 
-        // For upcoming appointments (next 7 days)
+        // Fetch upcoming appointments for the next 7 days
         const nowISOString = now.toISOString();
         const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
         const { data: upcomingBookings, error: upcomingError } = await supabase
@@ -110,7 +109,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         }
         const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
-        // Build the stats array
+        // Build the stats array with live data
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
