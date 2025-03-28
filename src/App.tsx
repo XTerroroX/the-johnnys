@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Booking from "./pages/Booking";
 import Login from "./pages/Login";
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
 import AdminDashboard from "./pages/AdminDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
 import NotFound from "./pages/NotFound";
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+          <Route path="/TermsOfService" element={<TermsOfService />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/barber-dashboard" element={<BarberDashboard />} />
           <Route path="*" element={<NotFound />} />
