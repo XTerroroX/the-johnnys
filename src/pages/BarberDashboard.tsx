@@ -265,7 +265,7 @@ const BarberDashboard = () => {
   return (
     <>
       <Navbar />
-      {/* Add top padding to ensure content is pushed below the fixed navbar */}
+      {/* Add padding-top to push content below the fixed navbar */}
       <div className="pt-20">
         <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50 dark:bg-slate-900">
           <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
@@ -310,7 +310,6 @@ const BarberDashboard = () => {
                 <TabsTrigger value="availability">Availability</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
-              
               {/* Dashboard Tab */}
               <TabsContent value="dashboard" className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -381,7 +380,6 @@ const BarberDashboard = () => {
                   </Card>
                 </div>
               </TabsContent>
-              
               {/* Appointments Tab */}
               <TabsContent value="appointments">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -481,7 +479,6 @@ const BarberDashboard = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
               {/* Availability Tab */}
               <TabsContent value="availability" className="space-y-3">
                 <Card>
@@ -556,7 +553,6 @@ const BarberDashboard = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
               {/* Settings Tab */}
               <TabsContent value="settings">
                 <div className="flex items-center justify-between mb-6">
