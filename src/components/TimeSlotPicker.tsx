@@ -1,4 +1,3 @@
-
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -25,7 +24,7 @@ const TimeSlotPicker = ({
   onSelectTime,
   selectedBarber
 }: TimeSlotPickerProps) => {
-  // Base time slots
+  // Base time slots in 12-hour format
   const morningSlots = ['9:00 AM', '10:00 AM', '11:00 AM'];
   const afternoonSlots = ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'];
   const eveningSlots = ['5:00 PM', '6:00 PM', '7:00 PM'];
@@ -37,20 +36,18 @@ const TimeSlotPicker = ({
     evening: eveningSlots.map(time => ({ time, isAvailable: true }))
   });
   
-  // Function to convert time from 12-hour to 24-hour format for comparison
+  // Updated conversion function that returns time in "HH:MM:SS" format
   const convertTo24Hour = (time12h: string) => {
     const [time, modifier] = time12h.split(' ');
     let [hours, minutes] = time.split(':');
-    
     let hourIn24 = parseInt(hours, 10);
-    
     if (hours === '12') {
       hourIn24 = modifier === 'PM' ? 12 : 0;
     } else if (modifier === 'PM') {
       hourIn24 += 12;
     }
-    
-    return `${hourIn24.toString().padStart(2, '0')}:${minutes}`;
+    // Return in "HH:MM:SS" format (assuming seconds are always "00")
+    return `${hourIn24.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
   };
   
   // Fetch barber availability based on day of week
@@ -134,22 +131,11 @@ const TimeSlotPicker = ({
     const availableHoursEnd = availabilityData?.end_time || '17:00:00';
     
     // Start with all slots available
-    const updatedMorningSlots = morningSlots.map(time => ({
-      time,
-      isAvailable: true
-    }));
+    const updatedMorningSlots = morningSlots.map(time => ({ time, isAvailable: true }));
+    const updatedAfternoonSlots = afternoonSlots.map(time => ({ time, isAvailable: true }));
+    const updatedEveningSlots = eveningSlots.map(time => ({ time, isAvailable: true }));
     
-    const updatedAfternoonSlots = afternoonSlots.map(time => ({
-      time,
-      isAvailable: true
-    }));
-    
-    const updatedEveningSlots = eveningSlots.map(time => ({
-      time,
-      isAvailable: true
-    }));
-    
-    // Mark slots as unavailable based on barber's working hours
+    // Create a combined list to update based on working hours and existing bookings
     const allSlots = [...updatedMorningSlots, ...updatedAfternoonSlots, ...updatedEveningSlots];
     allSlots.forEach(slot => {
       const slotTime24h = convertTo24Hour(slot.time);
@@ -163,6 +149,7 @@ const TimeSlotPicker = ({
       bookingsData.forEach(booking => {
         allSlots.forEach(slot => {
           const slotTime24h = convertTo24Hour(slot.time);
+          // Compare the converted slot time with the booking's start_time (assuming booking.start_time is in "HH:MM:SS" format)
           if (slotTime24h === booking.start_time) {
             slot.isAvailable = false;
           }
@@ -170,23 +157,23 @@ const TimeSlotPicker = ({
       });
     }
     
-    // Update state with new availability
+    // Update state with new availability; group them by period for rendering
     setAvailableSlots({
-      morning: updatedMorningSlots,
-      afternoon: updatedAfternoonSlots,
-      evening: updatedEveningSlots
+      morning: allSlots.filter(slot => morningSlots.includes(slot.time)),
+      afternoon: allSlots.filter(slot => afternoonSlots.includes(slot.time)),
+      evening: allSlots.filter(slot => eveningSlots.includes(slot.time))
     });
     
     // If the currently selected time is now unavailable, reset it
     if (selectedTime) {
-      const flatSlots = [...updatedMorningSlots, ...updatedAfternoonSlots, ...updatedEveningSlots];
+      const flatSlots = [...allSlots];
       const currentSlot = flatSlots.find(slot => slot.time === selectedTime);
       if (currentSlot && !currentSlot.isAvailable) {
         onSelectTime('');
         toast.warning("Your selected time is no longer available. Please select another time.");
       }
     }
-  }, [selectedDate, selectedBarber, availabilityData, bookingsData]);
+  }, [selectedDate, selectedBarber, availabilityData, bookingsData, selectedTime, morningSlots, afternoonSlots, eveningSlots, onSelectTime]);
   
   const handleSelectTime = (time: string) => {
     onSelectTime(time);
