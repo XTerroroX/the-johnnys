@@ -375,18 +375,26 @@ const AdminDashboard = () => {
   
   const deleteBarberMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.auth.admin.deleteUser(id);
-      if (error) throw error;
+      const response = await fetch('/api/deleteUser', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: id })
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete user");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['barbers'] });
       toast.success("Barber deleted successfully");
       setIsDeleteBarberDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Error deleting barber: ${error.message}`);
     }
   });
+  
   
   const updateBookingStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
