@@ -35,7 +35,7 @@ const PrivacyPolicy = () => {
           </p>
           <h2 className="text-2xl font-semibold mt-6">Contact Us</h2>
           <p className="mb-4">
-            If you have any questions about this Privacy Policy, please contact us at <a href="mailto:privacy@thejohnnys.com" className="text-blue-600 hover:underline">privacy@thejohnnys.com</a>.
+            If you have any questions about this Privacy Policy, please contact us at <a href="tel:+16029442535" className="text-blue-600 hover:underline">(602) 944-2535</a>.
           </p>
         </div>
       </main>
