@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // Assuming barberId is a UUID in string format
+  barberId: string; // Assuming this is a UUID string
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -41,11 +41,11 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         setLoading(true);
         const now = new Date();
 
-        // For monthly stats (earnings, clients served, avg. service time)
+        // Monthly stats range: from the first day to the last day of the current month.
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch bookings for the current month, joining the services table for cost info
+        // Fetch monthly bookings for the given barber
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
           .select('customer_email, start_time, end_time, services(cost)')
@@ -55,19 +55,19 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
 
         if (monthlyError) {
           console.error('Error fetching monthly bookings:', monthlyError);
-          setLoading(false);
-          return;
         }
 
+        // Ensure we have an array to work with
         const bookings = monthlyBookings || [];
 
+        // Initialize counters
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         let totalServiceTime = 0;
         let serviceCount = 0;
 
         bookings.forEach((booking: any) => {
-          // Use the cost from the joined services record (if available)
+          // Sum revenue using cost from the joined services record
           if (booking.services && booking.services.cost) {
             totalRevenue += parseFloat(booking.services.cost);
           }
@@ -75,7 +75,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             clientSet.add(booking.customer_email);
           }
           if (booking.start_time && booking.end_time) {
-            // Convert "HH:MM:SS" to total minutes
+            // Parse time strings in "HH:MM:SS" format to minutes
             const parseTime = (timeStr: string) => {
               const parts = timeStr.split(':').map(Number);
               return parts[0] * 60 + parts[1] + (parts[2] ? parts[2] / 60 : 0);
@@ -90,6 +90,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
           }
         });
 
+        // Calculate average service time (in minutes)
         const avgServiceTime = serviceCount > 0 ? (totalServiceTime / serviceCount).toFixed(1) : '0';
         const earningsFormatted = `$${totalRevenue.toFixed(2)}`;
         const clientsServed = clientSet.size;
@@ -109,7 +110,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         }
         const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
-        // Build the stats array with live data
+        // Build the stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -137,9 +138,37 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
           },
         ];
 
+        // Always set stats even if they are zero
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching barber stats:', error);
+        // Set fallback values in case of an error
+        setStats([
+          {
+            icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
+            title: 'Your Earnings',
+            value: '$0.00',
+            description: 'Total cost from appointments this month',
+          },
+          {
+            icon: <Users className="h-4 w-4 text-muted-foreground" />,
+            title: 'Clients Served',
+            value: '0',
+            description: 'Unique clients this month',
+          },
+          {
+            icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
+            title: 'Appointments',
+            value: '0',
+            description: 'Upcoming in the next week',
+          },
+          {
+            icon: <Timer className="h-4 w-4 text-muted-foreground" />,
+            title: 'Avg. Service Time',
+            value: '0 min',
+            description: 'Average duration of appointments',
+          },
+        ]);
       } finally {
         setLoading(false);
       }
