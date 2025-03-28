@@ -300,7 +300,7 @@ const BarberDashboard = () => {
   return (
   <>
     <Navbar />
-    
+    <div className="pt-20">
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
