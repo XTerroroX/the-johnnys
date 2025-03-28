@@ -1,5 +1,5 @@
-// /api/deleteUser.js
-const fetch = require('node-fetch');
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL; // e.g. https://your-project.supabase.co
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -10,9 +10,6 @@ export default async function handler(req, res) {
   if (!userId) {
     return res.status(400).json({ error: 'Missing userId' });
   }
-
-  const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   try {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
@@ -25,6 +22,7 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
+
     if (!response.ok) {
       return res.status(response.status).json({ error: result.message || 'Failed to delete user' });
     }
