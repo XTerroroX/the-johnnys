@@ -1,3 +1,4 @@
+// src/components/BarberDashboard.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -8,9 +9,7 @@ import {
   Clock,
   Search,
   X,
-  ChevronDown,
-  CheckCircle,
-  XCircle
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +19,9 @@ import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 import {
   Table,
@@ -118,7 +116,7 @@ const BarberDashboard = () => {
         return;
       }
       
-      // Allow superadmins to access this dashboard too.
+      // Allow both barbers and superadmins to access this dashboard.
       if (profile.role !== 'barber' && profile.role !== 'superadmin') {
         toast.error("You don't have permission to access the barber dashboard");
         if (profile.role === 'superadmin') {
@@ -633,6 +631,7 @@ const BarberDashboard = () => {
                   <CardTitle>Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* ChangePassword component now renders the form */}
                   <changePassword />
                 </CardContent>
               </Card>
