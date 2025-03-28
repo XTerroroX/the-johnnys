@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ChangePassword from '@/components/ChangePassword';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -644,95 +645,75 @@ const BarberDashboard = () => {
             </TabsContent>
             
             <TabsContent value="settings">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
-              </div>
-              
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {barberProfile ? (
-                    <div className="space-y-6">
-                      <div className="flex flex-col items-center mb-6">
-                        <ProfileImageUpload
-                          userId={barberProfile.id}
-                          currentImageUrl={barberProfile.image_url}
-                          userName={barberProfile.name}
-                          onImageUpdated={handleProfileImageUpdated}
-                          size="lg"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
-                          <Input id="name" value={barberProfile.name} readOnly />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input id="email" type="email" value={barberProfile.email} readOnly />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="specialty">Specialty</Label>
-                          <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="joined">Member Since</Label>
-                          <Input 
-                            id="joined" 
-                            value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
-                            readOnly 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="pt-4">
-                        <p className="text-sm text-muted-foreground">
-                          To update your profile information, please contact an administrator.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="current-password">Current Password</Label>
-                      <Input id="current-password" type="password" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-password">New Password</Label>
-                      <Input id="new-password" type="password" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm New Password</Label>
-                      <Input id="confirm-password" type="password" />
-                    </div>
-                    
-                    <div className="pt-4">
-                      <Button onClick={() => toast.success("This feature will be available soon")}>
-                        Update Password
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+  <div className="flex items-center justify-between mb-6">
+    <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
+  </div>
+  
+  <Card className="mb-6">
+    <CardHeader>
+      <CardTitle>Personal Information</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {barberProfile ? (
+        <div className="space-y-6">
+          <div className="flex flex-col items-center mb-6">
+            <ProfileImageUpload
+              userId={barberProfile.id}
+              currentImageUrl={barberProfile.image_url}
+              userName={barberProfile.name}
+              onImageUpdated={handleProfileImageUpdated}
+              size="lg"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" value={barberProfile.name} readOnly />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input id="email" type="email" value={barberProfile.email} readOnly />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="specialty">Specialty</Label>
+              <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="joined">Member Since</Label>
+              <Input 
+                id="joined" 
+                value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
+                readOnly 
+              />
+            </div>
+          </div>
+          
+          <div className="pt-4">
+            <p className="text-sm text-muted-foreground">
+              To update your profile information, please contact an administrator.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
+      )}
+    </CardContent>
+  </Card>
+  
+  <Card>
+    <CardHeader>
+      <CardTitle>Change Password</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {/* Replace the placeholder with our functional component */}
+      <ChangePassword />
+    </CardContent>
+  </Card>
+</TabsContent>
           </Tabs>
         </main>
       </div>
