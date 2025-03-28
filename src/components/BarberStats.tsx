@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // assuming barberId is a UUID string
+  barberId: string; // barberId as a UUID string
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -40,13 +40,11 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
       try {
         setLoading(true);
         const now = new Date();
-
-        // For monthly stats: from the first day to the last day of the current month
+        // Define current month range
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch monthly bookings for the given barber.
-        // Join the services table to get the service price and duration.
+        // Fetch monthly bookings for this barber, joining the services table for price and duration.
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
           .select(`customer_email, start_time, end_time, services(price,duration)`)
@@ -56,11 +54,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
 
         if (monthlyError) {
           console.error('Error fetching monthly bookings:', monthlyError);
-          setLoading(false);
-          return;
         }
-
-        // Use an empty array if no bookings are returned
         const bookings = monthlyBookings || [];
 
         let totalRevenue = 0;
@@ -69,19 +63,28 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         let serviceCount = 0;
 
         bookings.forEach((booking: any) => {
-          // Sum up the revenue using the price from the joined services record
-          if (booking.services && booking.services.price) {
-            totalRevenue += parseFloat(booking.services.price);
-          }
-          // Count unique clients
+          // Use the joined services.price (if available)
+          const price = booking?.services?.price ? parseFloat(booking.services.price) : 0;
+          totalRevenue += price;
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
-          // Sum service durations using the duration from the services table.
-          // We assume duration is stored as an integer (minutes)
-          if (booking.services && booking.services.duration) {
+          // Use the joined services.duration if available, else fallback to calculated duration
+          if (booking?.services?.duration) {
             totalServiceTime += parseInt(booking.services.duration, 10);
             serviceCount++;
+          } else if (booking.start_time && booking.end_time) {
+            const parseTime = (timeStr: string) => {
+              const parts = timeStr.split(':').map(Number);
+              return parts[0] * 60 + parts[1] + (parts[2] ? parts[2] / 60 : 0);
+            };
+            const startMinutes = parseTime(booking.start_time);
+            const endMinutes = parseTime(booking.end_time);
+            const duration = endMinutes - startMinutes;
+            if (duration > 0) {
+              totalServiceTime += duration;
+              serviceCount++;
+            }
           }
         });
 
@@ -104,13 +107,12 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         }
         const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
-        // Build the stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
             title: 'Your Earnings',
             value: earningsFormatted,
-            description: 'Total cost from appointments this month',
+            description: 'Total earnings this month',
           },
           {
             icon: <Users className="h-4 w-4 text-muted-foreground" />,
@@ -121,8 +123,8 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
           {
             icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
             title: 'Appointments',
-            value: appointmentsCount.toString(),
-            description: 'Upcoming in the next week',
+            value: bookings.length.toString(),
+            description: 'This month',
           },
           {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
@@ -135,13 +137,12 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching barber stats:', error);
-        // Fallback: Render stat boxes with zeros if an error occurs.
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
             title: 'Your Earnings',
             value: '$0.00',
-            description: 'Total cost from appointments this month',
+            description: 'Total earnings this month',
           },
           {
             icon: <Users className="h-4 w-4 text-muted-foreground" />,
@@ -153,7 +154,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
             title: 'Appointments',
             value: '0',
-            description: 'Upcoming in the next week',
+            description: 'This month',
           },
           {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
