@@ -67,7 +67,7 @@ const ProfileImageUpload = ({
         .from('barber_profiles')
         .upload(filePath, file, {
           upsert: true,
-          contentType: file.type
+          contentType: file.type || 'image/jpeg' // Fallback to 'image/jpeg' if file.type is falsy
         });
       
       if (error) {
