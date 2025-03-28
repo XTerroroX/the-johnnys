@@ -11,7 +11,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const [isBarber, setIsBarber] = useState(false);
+  const [isBarberOrAdmin, setIsBarberOrAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
 
@@ -19,39 +19,30 @@ const Navbar = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
-    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    // Check for current user/session
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        
-        // Fetch the profile
         const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        
         if (data) {
           setProfileData(data);
-          if (data.role === 'barber') {
-            setIsBarber(true);
-          } else if (data.role === 'superadmin') {
-            // You can decide if you treat superadmin like a barber or not
-            // setIsBarber(true);
+          if (data.role === 'barber' || data.role === 'superadmin') {
+            setIsBarberOrAdmin(true);
           }
         }
       }
     };
     checkUser();
-    
-    // Listen for auth changes
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
@@ -63,18 +54,17 @@ const Navbar = () => {
             .single();
           if (data) {
             setProfileData(data);
-            if (data.role === 'barber') {
-              setIsBarber(true);
+            if (data.role === 'barber' || data.role === 'superadmin') {
+              setIsBarberOrAdmin(true);
             }
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          setIsBarber(false);
+          setIsBarberOrAdmin(false);
           setProfileData(null);
         }
       }
     );
-    
     return () => {
       subscription.unsubscribe();
     };
@@ -82,12 +72,7 @@ const Navbar = () => {
 
   const getInitials = (name: string) => {
     if (!name) return 'U';
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+    return name.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2);
   };
 
   const navigationItems = [
@@ -97,62 +82,49 @@ const Navbar = () => {
   ];
 
   return (
-    <header 
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled ? 'py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm' : 'py-5 bg-transparent'
-      )}
+    <header className={cn(
+      'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+      isScrolled ? 'py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm' : 'py-5 bg-transparent')}
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo: "The Johnnys" */}
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-display font-bold">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center space-x-8">
+            <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap">
               The Johnnys
-            </span>
-          </Link>
+            </Link>
+            <nav className="hidden md:flex items-center space-x-8">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={cn('navigation-link', location.pathname === item.path && 'active')}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                  'navigation-link',
-                  location.pathname === item.path && 'active'
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Auth Buttons / Profile */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                {isBarber && (
-                  <BarberNotifications barberId={user.id} />
+                {isBarberOrAdmin && (
+                  <Link to={profileData?.role === 'superadmin' ? "/admin-dashboard" : "/barber-dashboard"}>
+                    <Button variant="outline" size="sm">Admin Portal</Button>
+                  </Link>
                 )}
-                {/* Show name + avatar, removing the Dashboard button */}
                 <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8 border border-primary/20">
                     <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {getInitials(profileData?.name || '')}
-                    </AvatarFallback>
+                    <AvatarFallback>{getInitials(profileData?.name || '')}</AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">
-                    {profileData?.name || 'User'}
-                  </span>
+                  <span className="text-sm font-medium">{profileData?.name}</span>
                 </div>
               </>
             ) : (
               <Link to="/login">
-                <Button variant="outline" size="sm" className="smooth-transition">
-                  <User className="w-4 h-4 mr-2" />
-                  Log In
+                <Button variant="outline" size="sm">
+                  <User className="w-4 h-4 mr-2" /> Log In
                 </Button>
               </Link>
             )}
@@ -160,83 +132,8 @@ const Navbar = () => {
               <Button className="smooth-transition">Book Now</Button>
             </Link>
           </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden h-screen w-full bg-background animate-fade-in">
-          <div className="container px-4 py-8 space-y-8">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                  'block text-lg font-medium',
-                  location.pathname === item.path
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-                )}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
-            
-            <div className="pt-4 flex flex-col space-y-4">
-              {user ? (
-                <>
-                  {isBarber && (
-                    <div className="py-2">
-                      <BarberNotifications barberId={user.id} />
-                    </div>
-                  )}
-                  {/* Show name + avatar instead of Dashboard link */}
-                  <div className="flex items-center">
-                    <Avatar className="h-8 w-8 border border-primary/20 mr-2">
-                      <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {getInitials(profileData?.name || '')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">
-                      {profileData?.name || 'User'}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-center smooth-transition"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Log In
-                  </Button>
-                </Link>
-              )}
-              
-              <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full justify-center smooth-transition">
-                  Book Now
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
