@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -16,9 +15,19 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -60,7 +69,6 @@ const Login = () => {
       console.log('Login successful:', data.user);
       
       // Get the user's role using direct RLS-compliant query
-      // Using eq filter ensures we only get the user's own profile due to RLS
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -81,11 +89,9 @@ const Login = () => {
           return;
         }
         
-        // If we got the role via RPC function, proceed with that
         console.log('User role (from RPC):', roleData);
         redirectBasedOnRole(roleData);
       } else {
-        // We successfully got the profile with the role
         console.log('User role (from profiles):', profileData.role);
         toast.success("Login successful!");
         redirectBasedOnRole(profileData.role);
@@ -109,15 +115,14 @@ const Login = () => {
     } else if (role === 'barber') {
       navigate('/barber-dashboard');
     } else {
-      // Default fallback
       navigate('/');
     }
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="pt-24 pb-20">
+      <main className="flex-grow pt-24 pb-20">
         <div className="page-container">
           <div className="max-w-md mx-auto glass-card p-8">
             <div className="text-center mb-8">
@@ -138,11 +143,7 @@ const Login = () => {
                       <FormControl>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input 
-                            placeholder="you@example.com" 
-                            className="pl-10"
-                            {...field} 
-                          />
+                          <Input placeholder="you@example.com" className="pl-10" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -159,12 +160,7 @@ const Login = () => {
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10"
-                            {...field} 
-                          />
+                          <Input type="password" placeholder="••••••••" className="pl-10" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -173,11 +169,7 @@ const Login = () => {
                 />
                 
                 <div>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -188,15 +180,13 @@ const Login = () => {
                     )}
                   </Button>
                 </div>
-                
-                
               </form>
             </Form>
           </div>
         </div>
       </main>
       <Footer />
-    </>
+    </div>
   );
 };
 
