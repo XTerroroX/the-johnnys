@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,7 @@ const ProfileImageUpload = ({
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
       
-      // Upload image to Supabase Storage
+      // Upload image to Supabase Storage (ensure bucket 'barber_profiles' is correctly named and public)
       const { data, error } = await supabase.storage
         .from('barber_profiles')
         .upload(filePath, file, {
@@ -71,7 +70,11 @@ const ProfileImageUpload = ({
           contentType: file.type
         });
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Upload success data:", data);
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
@@ -79,6 +82,7 @@ const ProfileImageUpload = ({
         .getPublicUrl(data.path);
       
       const publicUrl = publicUrlData.publicUrl;
+      console.log("Public URL:", publicUrl);
       
       // Update user profile with new image URL
       const { error: updateError } = await supabase
@@ -86,7 +90,9 @@ const ProfileImageUpload = ({
         .update({ image_url: publicUrl })
         .eq('id', userId);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw updateError;
+      }
       
       // Call the callback with the new image URL
       onImageUpdated(publicUrl);
