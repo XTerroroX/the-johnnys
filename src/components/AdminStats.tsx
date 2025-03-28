@@ -4,11 +4,16 @@ import { supabase } from '../integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Calendar, DollarSign, Users } from 'lucide-react';
 
-const StatCard = ({ icon, title, value, description }: { 
-  icon: React.ReactNode, 
-  title: string, 
-  value: string, 
-  description: string 
+const StatCard = ({
+  icon,
+  title,
+  value,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  description: string;
 }) => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -31,15 +36,14 @@ const AdminStats = () => {
       try {
         setLoading(true);
         const now = new Date();
-        // Determine the current month's range
+        // Define the current month range
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Query bookings for the current month and join the services table for price info.
-        // Note: Adjust the join key to match your Supabase relationship name (here assumed to be "services").
+        // Query all bookings for the current month with a join on the services table for "price"
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select(`customer_email, services(price)`)
+          .select('customer_email, services(price)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -49,14 +53,14 @@ const AdminStats = () => {
           return;
         }
 
-        // Ensure we work with an array even if no bookings are returned
-        const bookingsArray = bookings || [];
+        // Ensure bookings is an array even if no data is returned
+        const bookingList = bookings || [];
 
         let totalRevenue = 0;
         const clientSet = new Set<string>();
-        const totalAppointments = bookingsArray.length;
+        const totalAppointments = bookingList.length;
 
-        bookingsArray.forEach((booking: any) => {
+        bookingList.forEach((booking: any) => {
           if (booking.services && booking.services.price) {
             totalRevenue += parseFloat(booking.services.price);
           }
@@ -65,10 +69,14 @@ const AdminStats = () => {
           }
         });
 
-        const avgServiceValue = totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
+        // Calculate the average service value (total revenue divided by total appointments)
+        const avgServiceValue =
+          totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
+
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
         const activeClients = clientSet.size;
 
+        // Build the live stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -86,7 +94,7 @@ const AdminStats = () => {
             icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
             title: 'Appointments',
             value: totalAppointments.toString(),
-            description: 'Total appointments this month',
+            description: 'This month',
           },
           {
             icon: <BarChart className="h-4 w-4 text-muted-foreground" />,
@@ -97,9 +105,9 @@ const AdminStats = () => {
         ];
 
         setStats(newStats);
-      } catch (err) {
-        console.error('Error fetching admin stats:', err);
-        // Set fallback stat values in case of error.
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        // Set fallback stats (zeros) on error
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -117,7 +125,7 @@ const AdminStats = () => {
             icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
             title: 'Appointments',
             value: '0',
-            description: 'Total appointments this month',
+            description: 'This month',
           },
           {
             icon: <BarChart className="h-4 w-4 text-muted-foreground" />,
