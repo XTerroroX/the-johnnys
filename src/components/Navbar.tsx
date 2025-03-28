@@ -82,17 +82,21 @@ const Navbar = () => {
   ];
 
   return (
-    <header className={cn(
-      'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-      isScrolled ? 'py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm' : 'py-5 bg-transparent')}
+    <header
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        isScrolled ? 'py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm' : 'py-5 bg-transparent'
+      )}
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Flex container with left and right groups */}
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-8">
-            <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap">
+          {/* Left Group: Logo + Navigation Links */}
+          <div className="flex items-center">
+            <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap mr-8">
               The Johnnys
             </Link>
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden md:flex items-center space-x-6">
               {navigationItems.map((item) => (
                 <Link
                   key={item.name}
@@ -105,11 +109,12 @@ const Navbar = () => {
             </nav>
           </div>
 
+          {/* Right Group: User info and additional buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
                 {isBarberOrAdmin && (
-                  <Link to={profileData?.role === 'superadmin' ? "/admin-dashboard" : "/barber-dashboard"}>
+                  <Link to={profileData?.role === 'superadmin' ? '/admin-dashboard' : '/barber-dashboard'}>
                     <Button variant="outline" size="sm">Admin Portal</Button>
                   </Link>
                 )}
@@ -123,8 +128,9 @@ const Navbar = () => {
               </>
             ) : (
               <Link to="/login">
-                <Button variant="outline" size="sm">
-                  <User className="w-4 h-4 mr-2" /> Log In
+                <Button variant="outline" size="sm" className="smooth-transition">
+                  <User className="w-4 h-4 mr-2" />
+                  Log In
                 </Button>
               </Link>
             )}
@@ -134,6 +140,63 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile menu button */}
+      <button
+        className="md:hidden"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+      >
+        {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden h-screen w-full bg-background animate-fade-in">
+          <div className="container px-4 py-8 space-y-8">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={cn(
+                  'block text-lg font-medium',
+                  location.pathname === item.path ? 'text-primary' : 'text-muted-foreground'
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="pt-4 flex flex-col space-y-4">
+              {user ? (
+                <>
+                  {isBarberOrAdmin && (
+                    <div className="py-2">
+                      <BarberNotifications barberId={user.id} />
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8 border border-primary/20">
+                      <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
+                      <AvatarFallback>{getInitials(profileData?.name || '')}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{profileData?.name || 'User'}</span>
+                  </div>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full justify-center smooth-transition">
+                    <User className="w-4 h-4 mr-2" />
+                    Log In
+                  </Button>
+                </Link>
+              )}
+              <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full justify-center smooth-transition">Book Now</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
