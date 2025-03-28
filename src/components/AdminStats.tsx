@@ -40,10 +40,11 @@ const AdminStats = () => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Query all bookings for the current month with joined services data
+        // Query all bookings for the current month.
+        // Use services(*) to fetch all columns from the services table.
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('customer_email, services(price)')
+          .select('customer_email, services(*)')
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
@@ -53,23 +54,26 @@ const AdminStats = () => {
           return;
         }
 
-        // If no bookings, default to empty array
-        const bookingList = bookings || [];
+        console.log('Bookings fetched:', bookings);
 
+        const bookingList = bookings || [];
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         const totalAppointments = bookingList.length;
 
         bookingList.forEach((booking: any) => {
-          if (booking.services && booking.services.price) {
-            totalRevenue += parseFloat(booking.services.price);
-          }
+          // Use the service's price if available
+          const price =
+            booking?.services && booking.services.price
+              ? parseFloat(booking.services.price)
+              : 0;
+          totalRevenue += price;
+
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
         });
 
-        // Calculate the average service value
         const avgServiceValue =
           totalAppointments > 0 ? (totalRevenue / totalAppointments).toFixed(2) : '0.00';
         const totalRevenueFormatted = `$${totalRevenue.toFixed(2)}`;
@@ -105,7 +109,6 @@ const AdminStats = () => {
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        // Fallback stats on error
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
