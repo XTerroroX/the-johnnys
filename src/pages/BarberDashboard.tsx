@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/form";
 import BarberStats from '@/components/BarberStats';
 import ProfileImageUpload from '@/components/ProfileImageUpload';
-import changePassword from '@/components/changePassword';
+import ChangePassword from '@/components/ChangePassword';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,29 +96,25 @@ const BarberDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [barberProfile, setBarberProfile] = useState<any>(null);
-  
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session) {
         toast.error("Please log in to access the barber dashboard");
         navigate("/login");
         return;
       }
-      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single();
-      
       if (error) {
         toast.error("Error fetching profile: " + error.message);
         navigate("/login");
         return;
       }
-      
       // Allow both barbers and superadmins to access this dashboard.
       if (profile.role !== 'barber' && profile.role !== 'superadmin') {
         toast.error("You don't have permission to access the barber dashboard");
@@ -129,13 +125,11 @@ const BarberDashboard = () => {
         }
         return;
       }
-      
       setBarberProfile(profile);
     };
-    
     checkAuth();
   }, [navigate]);
-  
+
   const { 
     data: appointments = [], 
     isLoading: isLoadingAppointments 
@@ -143,7 +137,6 @@ const BarberDashboard = () => {
     queryKey: ['barber-appointments', barberProfile?.id],
     queryFn: async () => {
       if (!barberProfile?.id) return [];
-      
       const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -152,13 +145,12 @@ const BarberDashboard = () => {
         `)
         .eq('barber_id', barberProfile.id)
         .order('date', { ascending: false });
-        
       if (error) throw error;
       return data as Appointment[];
     },
     enabled: !!barberProfile?.id
   });
-  
+
   const { 
     data: availability = [], 
     isLoading: isLoadingAvailability 
@@ -166,36 +158,31 @@ const BarberDashboard = () => {
     queryKey: ['barber-availability', barberProfile?.id],
     queryFn: async () => {
       if (!barberProfile?.id) return [];
-      
       const { data, error } = await supabase
         .from('barber_availability')
         .select('*')
         .eq('barber_id', barberProfile.id)
         .order('day_of_week');
-        
       if (error) throw error;
       return data as Availability[];
     },
     enabled: !!barberProfile?.id
   });
-  
+
   const updateAvailabilityMutation = useMutation({
     mutationFn: async ({ id, is_available, start_time, end_time }: { id: number, is_available: boolean, start_time?: string, end_time?: string }) => {
       const updateData: any = { 
         is_available,
         updated_at: new Date().toISOString()
       };
-      
       if (start_time) updateData.start_time = start_time;
       if (end_time) updateData.end_time = end_time;
-      
       const { data, error } = await supabase
         .from('barber_availability')
         .update(updateData)
         .eq('id', id)
         .select()
         .single();
-        
       if (error) throw error;
       return data;
     },
@@ -207,7 +194,7 @@ const BarberDashboard = () => {
       toast.error(`Error updating availability: ${error.message}`);
     }
   });
-  
+
   const updateAppointmentStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { data, error } = await supabase
@@ -220,7 +207,6 @@ const BarberDashboard = () => {
         .eq('barber_id', barberProfile?.id)
         .select()
         .single();
-        
       if (error) throw error;
       return data;
     },
@@ -232,21 +218,21 @@ const BarberDashboard = () => {
       toast.error(`Error updating appointment: ${error.message}`);
     }
   });
-  
+
   const filteredAppointments = appointments.filter(appointment => 
     appointment.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     appointment.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     appointment.service.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
   const upcomingAppointments = filteredAppointments.filter(
     appointment => appointment.status === 'confirmed'
   );
-  
+
   const pastAppointments = filteredAppointments.filter(
     appointment => appointment.status === 'completed' || appointment.status === 'cancelled'
   );
-  
+
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
     const [hours, minutes] = timeString.split(':').map(Number);
@@ -254,7 +240,7 @@ const BarberDashboard = () => {
     const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
-  
+
   const handleTimeChange = (availabilityId: number, field: 'start_time' | 'end_time', value: string) => {
     const formattedTime = value + ':00';
     updateAvailabilityMutation.mutate({ 
@@ -263,34 +249,32 @@ const BarberDashboard = () => {
       [field]: formattedTime 
     });
   };
-  
+
   const handleAvailabilityChange = (id: number, checked: boolean) => {
     updateAvailabilityMutation.mutate({ id, is_available: checked });
   };
-  
+
   const handleMarkAsCompleted = (id: number) => {
     updateAppointmentStatusMutation.mutate({ id, status: 'completed' });
   };
-  
+
   const handleCancelAppointment = (id: number) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       updateAppointmentStatusMutation.mutate({ id, status: 'cancelled' });
     }
   };
-  
+
   const handleProfileImageUpdated = (newImageUrl: string) => {
     setBarberProfile({
       ...barberProfile,
       image_url: newImageUrl
     });
-    
     queryClient.invalidateQueries({ queryKey: ['barber-profile'] });
     toast.success('Profile image updated successfully');
   };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    
     if (error) {
       toast.error(`Error signing out: ${error.message}`);
     } else {
@@ -634,7 +618,7 @@ const BarberDashboard = () => {
                   <CardTitle>Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <changePassword />
+                  <ChangePassword />
                 </CardContent>
               </Card>
             </TabsContent>
