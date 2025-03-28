@@ -1,15 +1,17 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import BarberNotifications from '@/components/BarberNotifications';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  
+  const [isBarber, setIsBarber] = useState(false);
+  const [user, setUser] = useState(null);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -121,6 +123,10 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {isBarber && (
+        <BarberNotifications barberId={user.id} />
       )}
     </header>
   );

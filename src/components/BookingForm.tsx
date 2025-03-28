@@ -102,45 +102,40 @@ const BookingForm = ({
       const selectedService = services.find(s => s.id.toString() === values.service);
       const duration = selectedService?.duration || 30;
       
-      const [hours, minutes] = selectedTime.split(':');
-      const isPM = selectedTime.includes('PM');
-      let startHour = parseInt(hours);
+      const time24h = convertTo24Hour(selectedTime);
       
-      if (isPM && startHour < 12) {
-        startHour += 12;
-      } else if (!isPM && startHour === 12) {
-        startHour = 0;
+      const [hoursStr, minutesStr] = time24h.split(':');
+      let hours = parseInt(hoursStr);
+      let minutes = parseInt(minutesStr);
+      
+      minutes += duration;
+      if (minutes >= 60) {
+        hours += Math.floor(minutes / 60);
+        minutes = minutes % 60;
       }
       
-      const startMinutes = parseInt(minutes);
+      const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       
-      let endHour = startHour;
-      let endMinutes = startMinutes + duration;
-      
-      if (endMinutes >= 60) {
-        endHour += Math.floor(endMinutes / 60);
-        endMinutes = endMinutes % 60;
-      }
-      
-      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
-      
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .insert({
           barber_id: selectedBarber,
           service_id: parseInt(values.service),
           date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: convertTo24Hour(selectedTime),
+          start_time: time24h,
           end_time: endTime,
           customer_name: values.name,
           customer_email: values.email,
           customer_phone: values.phone,
           notes: values.notes || null,
           status: 'confirmed'
-        });
+        })
+        .select()
+        .single();
         
       if (error) {
-        throw error;
+        console.error("Booking error details:", error);
+        throw new Error(error.message || "Failed to create booking");
       }
       
       toast.success("Booking confirmed! We'll see you soon.");

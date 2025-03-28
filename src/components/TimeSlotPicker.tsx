@@ -1,7 +1,11 @@
 
 import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface TimeSlotPickerProps {
   selectedDate: Date | undefined;
@@ -10,61 +14,215 @@ interface TimeSlotPickerProps {
   selectedBarber: string | null;
 }
 
+interface BookingSlot {
+  time: string;
+  isAvailable: boolean;
+}
+
 const TimeSlotPicker = ({ 
   selectedDate,
   selectedTime,
   onSelectTime,
   selectedBarber
 }: TimeSlotPickerProps) => {
-  // In a real app, this would come from Supabase based on the selected date and barber
+  // Base time slots
   const morningSlots = ['9:00 AM', '10:00 AM', '11:00 AM'];
   const afternoonSlots = ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'];
   const eveningSlots = ['5:00 PM', '6:00 PM', '7:00 PM'];
   
-  // Simulate unavailable slots based on selected barber
-  // This would be replaced with actual data from Supabase
-  const getUnavailableSlots = (barberId: string | null) => {
-    if (!barberId) return [];
+  // State to hold available slots after checking against existing bookings
+  const [availableSlots, setAvailableSlots] = useState<Record<string, BookingSlot[]>>({
+    morning: morningSlots.map(time => ({ time, isAvailable: true })),
+    afternoon: afternoonSlots.map(time => ({ time, isAvailable: true })),
+    evening: eveningSlots.map(time => ({ time, isAvailable: true }))
+  });
+  
+  // Function to convert time from 12-hour to 24-hour format for comparison
+  const convertTo24Hour = (time12h: string) => {
+    const [time, modifier] = time12h.split(' ');
+    let [hours, minutes] = time.split(':');
     
-    // In a real app, query bookings to find unavailable slots
-    return [];
+    let hourIn24 = parseInt(hours, 10);
+    
+    if (hours === '12') {
+      hourIn24 = modifier === 'PM' ? 12 : 0;
+    } else if (modifier === 'PM') {
+      hourIn24 += 12;
+    }
+    
+    return `${hourIn24.toString().padStart(2, '0')}:${minutes}`;
   };
   
-  const unavailableSlots = getUnavailableSlots(selectedBarber);
-  
-  const isTimeSlotAvailable = (time: string) => {
-    return !unavailableSlots.includes(time);
+  // Fetch barber availability based on day of week
+  const fetchBarberAvailability = async () => {
+    if (!selectedBarber || !selectedDate) return null;
+    
+    const dayOfWeek = selectedDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    
+    const { data, error } = await supabase
+      .from('barber_availability')
+      .select('*')
+      .eq('barber_id', selectedBarber)
+      .eq('day_of_week', dayOfWeek)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching barber availability:', error);
+      return null;
+    }
+    
+    return data;
   };
+  
+  // Fetch existing bookings for the selected date and barber
+  const fetchExistingBookings = async () => {
+    if (!selectedBarber || !selectedDate) return [];
+    
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('barber_id', selectedBarber)
+      .eq('date', formattedDate)
+      .neq('status', 'cancelled');
+      
+    if (error) {
+      console.error('Error fetching bookings:', error);
+      return [];
+    }
+    
+    return data || [];
+  };
+  
+  // Use React Query to fetch availability data
+  const { data: availabilityData, isLoading: isLoadingAvailability } = useQuery({
+    queryKey: ['barberAvailability', selectedBarber, selectedDate],
+    queryFn: fetchBarberAvailability,
+    enabled: !!selectedBarber && !!selectedDate
+  });
+  
+  // Use React Query to fetch bookings data
+  const { data: bookingsData, isLoading: isLoadingBookings } = useQuery({
+    queryKey: ['barberBookings', selectedBarber, selectedDate],
+    queryFn: fetchExistingBookings,
+    enabled: !!selectedBarber && !!selectedDate
+  });
+  
+  // Update available slots based on fetched data
+  useEffect(() => {
+    if (!selectedDate || !selectedBarber) return;
+    
+    // First check if the barber is available on this day at all
+    if (availabilityData && !availabilityData.is_available) {
+      // Barber is not available on this day
+      const allUnavailable = {
+        morning: morningSlots.map(time => ({ time, isAvailable: false })),
+        afternoon: afternoonSlots.map(time => ({ time, isAvailable: false })),
+        evening: eveningSlots.map(time => ({ time, isAvailable: false }))
+      };
+      setAvailableSlots(allUnavailable);
+      if (selectedTime) {
+        onSelectTime('');
+        toast.error("The barber is not available on this day. Please select another date.");
+      }
+      return;
+    }
+    
+    // Check against barber's working hours
+    const availableHoursStart = availabilityData?.start_time || '09:00:00';
+    const availableHoursEnd = availabilityData?.end_time || '17:00:00';
+    
+    // Start with all slots available
+    const updatedMorningSlots = morningSlots.map(time => ({
+      time,
+      isAvailable: true
+    }));
+    
+    const updatedAfternoonSlots = afternoonSlots.map(time => ({
+      time,
+      isAvailable: true
+    }));
+    
+    const updatedEveningSlots = eveningSlots.map(time => ({
+      time,
+      isAvailable: true
+    }));
+    
+    // Mark slots as unavailable based on barber's working hours
+    const allSlots = [...updatedMorningSlots, ...updatedAfternoonSlots, ...updatedEveningSlots];
+    allSlots.forEach(slot => {
+      const slotTime24h = convertTo24Hour(slot.time);
+      if (slotTime24h < availableHoursStart || slotTime24h >= availableHoursEnd) {
+        slot.isAvailable = false;
+      }
+    });
+    
+    // Mark slots as unavailable based on existing bookings
+    if (bookingsData) {
+      bookingsData.forEach(booking => {
+        allSlots.forEach(slot => {
+          const slotTime24h = convertTo24Hour(slot.time);
+          if (slotTime24h === booking.start_time) {
+            slot.isAvailable = false;
+          }
+        });
+      });
+    }
+    
+    // Update state with new availability
+    setAvailableSlots({
+      morning: updatedMorningSlots,
+      afternoon: updatedAfternoonSlots,
+      evening: updatedEveningSlots
+    });
+    
+    // If the currently selected time is now unavailable, reset it
+    if (selectedTime) {
+      const flatSlots = [...updatedMorningSlots, ...updatedAfternoonSlots, ...updatedEveningSlots];
+      const currentSlot = flatSlots.find(slot => slot.time === selectedTime);
+      if (currentSlot && !currentSlot.isAvailable) {
+        onSelectTime('');
+        toast.warning("Your selected time is no longer available. Please select another time.");
+      }
+    }
+  }, [selectedDate, selectedBarber, availabilityData, bookingsData]);
   
   const handleSelectTime = (time: string) => {
-    if (isTimeSlotAvailable(time)) {
-      onSelectTime(time);
-    }
+    onSelectTime(time);
   };
   
-  const renderTimeSlots = (slots: string[], title: string) => {
+  const renderTimeSlots = (slots: BookingSlot[], title: string) => {
     return (
       <div className="mb-6">
         <h4 className="text-sm font-medium text-muted-foreground mb-3">{title}</h4>
         <div className="grid grid-cols-3 gap-2">
-          {slots.map((time) => (
+          {slots.map((slot) => (
             <Button
-              key={time}
-              variant={selectedTime === time ? "default" : "outline"}
+              key={slot.time}
+              variant={selectedTime === slot.time ? "default" : "outline"}
               className={cn(
-                !isTimeSlotAvailable(time) && "opacity-50 cursor-not-allowed",
+                !slot.isAvailable && "opacity-50 cursor-not-allowed",
                 "w-full"
               )}
-              disabled={!isTimeSlotAvailable(time) || !selectedBarber || !selectedDate}
-              onClick={() => handleSelectTime(time)}
+              disabled={!slot.isAvailable || !selectedBarber || !selectedDate || isLoadingAvailability || isLoadingBookings}
+              onClick={() => handleSelectTime(slot.time)}
             >
-              {time}
+              {slot.time}
             </Button>
           ))}
         </div>
       </div>
     );
   };
+  
+  if (isLoadingAvailability || isLoadingBookings) {
+    return (
+      <div className="text-center py-6 border border-dashed rounded-md border-slate-200 dark:border-slate-700">
+        <p className="text-muted-foreground">Loading available time slots...</p>
+      </div>
+    );
+  }
   
   if (!selectedDate) {
     return (
@@ -89,9 +247,9 @@ const TimeSlotPicker = ({
       </h3>
       
       <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md">
-        {renderTimeSlots(morningSlots, "Morning")}
-        {renderTimeSlots(afternoonSlots, "Afternoon")}
-        {renderTimeSlots(eveningSlots, "Evening")}
+        {renderTimeSlots(availableSlots.morning, "Morning")}
+        {renderTimeSlots(availableSlots.afternoon, "Afternoon")}
+        {renderTimeSlots(availableSlots.evening, "Evening")}
       </div>
     </div>
   );

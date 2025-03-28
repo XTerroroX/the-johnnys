@@ -50,6 +50,45 @@ export type Database = {
           },
         ]
       }
+      booking_notifications: {
+        Row: {
+          barber_id: string
+          booking_id: number
+          created_at: string
+          id: string
+          is_read: boolean
+        }
+        Insert: {
+          barber_id: string
+          booking_id: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+        }
+        Update: {
+          barber_id?: string
+          booking_id?: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_notifications_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           barber_id: string
