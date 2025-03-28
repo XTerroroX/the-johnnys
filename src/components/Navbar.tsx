@@ -89,10 +89,9 @@ const Navbar = () => {
       )}
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Flex container with left and right groups */}
         <div className="flex items-center justify-between w-full">
-          {/* Left Group: Logo + Navigation Links */}
-          <div className="flex items-center">
+          {/* Left Section: Logo + Navigation */}
+          <div className="flex items-center flex-1">
             <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap mr-8">
               The Johnnys
             </Link>
@@ -109,8 +108,8 @@ const Navbar = () => {
             </nav>
           </div>
 
-          {/* Right Group: User info and additional buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Right Section: User Info + Buttons */}
+          <div className="flex items-center space-x-4">
             {user ? (
               <>
                 {isBarberOrAdmin && (
@@ -128,20 +127,20 @@ const Navbar = () => {
               </>
             ) : (
               <Link to="/login">
-                <Button variant="outline" size="sm" className="smooth-transition">
+                <Button variant="outline" size="sm">
                   <User className="w-4 h-4 mr-2" />
                   Log In
                 </Button>
               </Link>
             )}
             <Link to="/booking">
-              <Button className="smooth-transition">Book Now</Button>
+              <Button>Book Now</Button>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu button */}
+      {/* Mobile Menu Button */}
       <button
         className="md:hidden"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -149,7 +148,7 @@ const Navbar = () => {
         {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
 
-      {/* Mobile menu */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden h-screen w-full bg-background animate-fade-in">
           <div className="container px-4 py-8 space-y-8">
@@ -184,14 +183,14 @@ const Navbar = () => {
                 </>
               ) : (
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full justify-center smooth-transition">
+                  <Button variant="outline" className="w-full justify-center">
                     <User className="w-4 h-4 mr-2" />
                     Log In
                   </Button>
                 </Link>
               )}
               <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full justify-center smooth-transition">Book Now</Button>
+                <Button className="w-full justify-center">Book Now</Button>
               </Link>
             </div>
           </div>
