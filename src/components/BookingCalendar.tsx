@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format, addDays, isToday, isBefore, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -16,15 +16,27 @@ interface BookingCalendarProps {
 
 const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  
   const today = startOfDay(new Date());
 
-  // No disabledDates since the shop is open every day.
-  // Date selection helper
+  // No disabledDates as shop is open every day.
   const handleDateSelect = (date: Date | undefined) => {
     onSelectDate(date);
     setCalendarOpen(false);
   };
+
+  // For quick selection scrolling, create a ref for the container.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollLeft = () => {
+    scrollContainerRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
+  };
+
+  const scrollRight = () => {
+    scrollContainerRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
+  };
+
+  // Quick selection: generate 14 days starting from today (or adjust as needed)
+  const quickSelectionDays = Array.from({ length: 14 }, (_, i) => addDays(today, i));
 
   return (
     <div className="space-y-4">
@@ -43,7 +55,6 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
               mode="single"
               selected={selectedDate}
               onSelect={handleDateSelect}
-              // Only disable past dates.
               disabled={(date) => isBefore(date, today)}
               initialFocus
               className="pointer-events-auto"
@@ -52,36 +63,36 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
         </Popover>
       </div>
 
-      {/* Optional Quick Selection Bar (currently showing 7 days starting today) */}
+      {/* Quick selection with scrolling */}
       <div className="relative flex items-center">
         <Button
           variant="ghost"
           size="icon"
           className="absolute left-0 z-10"
-          onClick={() => {
-            // Implement date scrolling if desired
-          }}
+          onClick={scrollLeft}
         >
-          {/* Left Chevron */}
+          <ChevronLeft className="h-4 w-4" />
         </Button>
         
-        <div className="flex overflow-x-auto space-x-2 py-2 px-9 no-scrollbar">
-          {Array.from({ length: 7 }, (_, i) => {
-            const date = addDays(today, i);
-            const formattedDate = format(date, 'EEE');
+        <div
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto space-x-2 py-2 px-9 no-scrollbar"
+        >
+          {quickSelectionDays.map((date, index) => {
+            const formattedDay = format(date, 'EEE');
             const dayNumber = format(date, 'd');
-            
             return (
               <Button
-                key={i}
-                variant={selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') 
-                  ? "default" 
-                  : "outline"
+                key={index}
+                variant={
+                  selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+                    ? "default"
+                    : "outline"
                 }
                 className="flex-col h-auto min-w-[4rem] py-2"
                 onClick={() => onSelectDate(date)}
               >
-                <span className="text-xs">{formattedDate}</span>
+                <span className="text-xs">{formattedDay}</span>
                 <span className="text-lg">{dayNumber}</span>
                 {isToday(date) && (
                   <span className="text-xs mt-1 bg-primary/10 px-2 py-0.5 rounded-full">Today</span>
@@ -95,11 +106,9 @@ const BookingCalendar = ({ selectedDate, onSelectDate }: BookingCalendarProps) =
           variant="ghost"
           size="icon"
           className="absolute right-0 z-10"
-          onClick={() => {
-            // Implement date scrolling if desired
-          }}
+          onClick={scrollRight}
         >
-          {/* Right Chevron */}
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
