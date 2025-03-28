@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import ChangePassword from '@/components/ChangePassword';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -46,6 +45,7 @@ import {
 } from "@/components/ui/form";
 import BarberStats from '@/components/BarberStats';
 import ProfileImageUpload from '@/components/ProfileImageUpload';
+import ChangePassword from '@/components/ChangePassword';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,7 +118,8 @@ const BarberDashboard = () => {
         return;
       }
       
-      if (profile.role !== 'barber') {
+      // Allow superadmins to access this dashboard too.
+      if (profile.role !== 'barber' && profile.role !== 'superadmin') {
         toast.error("You don't have permission to access the barber dashboard");
         if (profile.role === 'superadmin') {
           navigate("/admin-dashboard");
@@ -567,153 +568,75 @@ const BarberDashboard = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="availability">
+            <TabsContent value="settings">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">Set Your Availability</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
               </div>
               
-              <Card>
+              <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Weekly Schedule</CardTitle>
-                  <CardDescription>
-                    Set the days and times when you are available for appointments
-                  </CardDescription>
+                  <CardTitle>Personal Information</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoadingAvailability ? (
-                    <p className="text-center text-muted-foreground py-4">Loading your availability settings...</p>
-                  ) : (
+                  {barberProfile ? (
                     <div className="space-y-6">
-                      {availability.map((day) => (
-                        <div key={day.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                          <div className="mb-4 sm:mb-0">
-                            <p className="font-medium capitalize">{dayOfWeekNames[day.day_of_week]}</p>
-                          </div>
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                id={`availability-${day.id}`}
-                                checked={day.is_available}
-                                onCheckedChange={(checked) => handleAvailabilityChange(day.id, checked)}
-                              />
-                              <Label htmlFor={`availability-${day.id}`}>
-                                {day.is_available ? (
-                                  <span className="text-green-600 dark:text-green-400 flex items-center">
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Available
-                                  </span>
-                                ) : (
-                                  <span className="text-red-500 dark:text-red-400 flex items-center">
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Unavailable
-                                  </span>
-                                )}
-                              </Label>
-                            </div>
-                            
-                            {day.is_available && (
-                              <div className="flex items-center gap-2">
-                                <div>
-                                  <Label htmlFor={`start-time-${day.id}`} className="text-sm">Start</Label>
-                                  <Input
-                                    id={`start-time-${day.id}`}
-                                    type="time"
-                                    value={day.start_time.substring(0, 5)}
-                                    onChange={(e) => handleTimeChange(day.id, 'start_time', e.target.value)}
-                                    className="w-32"
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor={`end-time-${day.id}`} className="text-sm">End</Label>
-                                  <Input
-                                    id={`end-time-${day.id}`}
-                                    type="time"
-                                    value={day.end_time.substring(0, 5)}
-                                    onChange={(e) => handleTimeChange(day.id, 'end_time', e.target.value)}
-                                    className="w-32"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                      <div className="flex flex-col items-center mb-6">
+                        <ProfileImageUpload
+                          userId={barberProfile.id}
+                          currentImageUrl={barberProfile.image_url}
+                          userName={barberProfile.name}
+                          onImageUpdated={handleProfileImageUpdated}
+                          size="lg"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Full Name</Label>
+                          <Input id="name" value={barberProfile.name} readOnly />
                         </div>
-                      ))}
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email Address</Label>
+                          <Input id="email" type="email" value={barberProfile.email} readOnly />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="specialty">Specialty</Label>
+                          <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="joined">Member Since</Label>
+                          <Input 
+                            id="joined" 
+                            value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
+                            readOnly 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4">
+                        <p className="text-sm text-muted-foreground">
+                          To update your profile information, please contact an administrator.
+                        </p>
+                      </div>
                     </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
                   )}
                 </CardContent>
               </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Password</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChangePassword />
+                </CardContent>
+              </Card>
             </TabsContent>
-            
-            <TabsContent value="settings">
-  <div className="flex items-center justify-between mb-6">
-    <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
-  </div>
-  
-  <Card className="mb-6">
-    <CardHeader>
-      <CardTitle>Personal Information</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {barberProfile ? (
-        <div className="space-y-6">
-          <div className="flex flex-col items-center mb-6">
-            <ProfileImageUpload
-              userId={barberProfile.id}
-              currentImageUrl={barberProfile.image_url}
-              userName={barberProfile.name}
-              onImageUpdated={handleProfileImageUpdated}
-              size="lg"
-            />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={barberProfile.name} readOnly />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" value={barberProfile.email} readOnly />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="specialty">Specialty</Label>
-              <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="joined">Member Since</Label>
-              <Input 
-                id="joined" 
-                value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
-                readOnly 
-              />
-            </div>
-          </div>
-          
-          <div className="pt-4">
-            <p className="text-sm text-muted-foreground">
-              To update your profile information, please contact an administrator.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
-      )}
-    </CardContent>
-  </Card>
-  
-  <Card>
-    <CardHeader>
-      <CardTitle>Change Password</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {/* Replace the placeholder with our functional component */}
-      <ChangePassword />
-    </CardContent>
-  </Card>
-</TabsContent>
           </Tabs>
         </main>
       </div>
