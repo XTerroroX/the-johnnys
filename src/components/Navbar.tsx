@@ -15,6 +15,9 @@ const Navbar = () => {
   const [user, setUser] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
 
+  // Determine if we're on a portal page by checking if the pathname contains "dashboard"
+  const isPortal = location.pathname.includes('dashboard');
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -85,12 +88,15 @@ const Navbar = () => {
     <header
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled ? 'py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm' : 'py-5 bg-transparent'
+        // If on a portal, use a solid background (and add extra padding if needed), otherwise use the original style.
+        isPortal || isScrolled
+          ? 'py-3 bg-white dark:bg-slate-900 shadow-sm'
+          : 'py-5 bg-transparent'
       )}
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between w-full">
-          {/* Left Section: Logo + Navigation */}
+          {/* Left Section: Logo + Navigation Links */}
           <div className="flex items-center flex-1">
             <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap mr-8">
               The Johnnys
@@ -108,7 +114,7 @@ const Navbar = () => {
             </nav>
           </div>
 
-          {/* Right Section: User Info + Buttons */}
+          {/* Right Section: User Info and Buttons */}
           <div className="flex items-center space-x-4">
             {user ? (
               <>
