@@ -15,11 +15,11 @@ import { useQuery } from '@tanstack/react-query';
 
 type Barber = Tables<'profiles'>;
 
-const fetchBarbers = async (): Promise<Barber[]> => {
+const fetchBarbers = async () => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('role', 'barber');
+    .in('role', ['barber', 'superadmin']);
     
   if (error) {
     console.error('Error fetching barbers:', error);
