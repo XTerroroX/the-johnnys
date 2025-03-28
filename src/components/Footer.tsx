@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Facebook, Twitter, Mail, PhoneCall, MapPin } from 'lucide-react';
 
@@ -72,10 +72,10 @@ const Footer = () => {
             © {currentYear} The Johnnys. All rights reserved.
           </p>
           <div className="flex space-x-6">
-            <Link to="/privacy" className="text-slate-400 text-sm hover:text-white transition-colors">
+            <Link to="/PrivacyPolicy" className="text-slate-400 text-sm hover:text-white transition-colors">
               Privacy Policy
             </Link>
-            <Link to="/terms" className="text-slate-400 text-sm hover:text-white transition-colors">
+            <Link to="/TermsOfService" className="text-slate-400 text-sm hover:text-white transition-colors">
               Terms of Service
             </Link>
           </div>
