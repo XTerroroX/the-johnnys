@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // Make sure this is the correct type (e.g. UUID as string)
+  barberId: string; // Ensure this matches your type (usually a UUID as string)
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -37,18 +37,15 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
       try {
-        // Get current date/time info
+        setLoading(true);
+
+        // Determine the current month for earnings, clients, and avg service time
         const now = new Date();
-        // For monthly stats (earnings, clients, avg. service time)
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-        // For upcoming appointments, use the next 7 days
-        const nowISOString = now.toISOString();
-        const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Fetch bookings for the current month for earnings, clients and avg service time
+        // Fetch monthly bookings for the current barber
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
           .select('customer_email, cost, start_time, end_time')
@@ -58,16 +55,17 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
 
         if (monthlyError) {
           console.error('Error fetching monthly bookings:', monthlyError);
-          setLoading(false);
-          return;
         }
+
+        // Fallback to empty array if no data
+        const bookings = monthlyBookings || [];
 
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         let totalServiceTime = 0;
         let serviceCount = 0;
 
-        monthlyBookings.forEach((booking: any) => {
+        bookings.forEach((booking: any) => {
           if (booking.cost) {
             totalRevenue += parseFloat(booking.cost);
           }
@@ -75,12 +73,12 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             clientSet.add(booking.customer_email);
           }
           if (booking.start_time && booking.end_time) {
-            // Parse times (assuming format "HH:MM:SS")
-            const [startH, startM, startS] = booking.start_time.split(':').map(Number);
-            const [endH, endM, endS] = booking.end_time.split(':').map(Number);
-            const startTotal = startH * 60 + startM + startS / 60;
-            const endTotal = endH * 60 + endM + endS / 60;
-            const duration = endTotal - startTotal;
+            // Assume time is in "HH:MM:SS" format. Convert to minutes.
+            const startParts = booking.start_time.split(':').map(Number);
+            const endParts = booking.end_time.split(':').map(Number);
+            const startMinutes = startParts[0] * 60 + startParts[1] + (startParts[2] || 0) / 60;
+            const endMinutes = endParts[0] * 60 + endParts[1] + (endParts[2] || 0) / 60;
+            const duration = endMinutes - startMinutes;
             if (duration > 0) {
               totalServiceTime += duration;
               serviceCount++;
@@ -93,6 +91,9 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         const clientsServed = clientSet.size;
 
         // Fetch upcoming appointments for the next week
+        const nowISOString = now.toISOString();
+        const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
         const { data: upcomingBookings, error: upcomingError } = await supabase
           .from('bookings')
           .select('id')
@@ -105,7 +106,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         }
         const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
-        // Build live stats array
+        // Build the live stats array
         const newStats = [
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -129,33 +130,36 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
             title: 'Avg. Service Time',
             value: `${avgServiceTime} min`,
-            description: 'Average service duration',
+            description: 'Average duration',
           },
         ];
 
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching barber stats:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchStats();
   }, [barberId]);
 
-  if (loading) return <div>Loading stats...</div>;
-
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, index) => (
-        <StatCard
-          key={index}
-          icon={stat.icon}
-          title={stat.title}
-          value={stat.value}
-          description={stat.description}
-        />
-      ))}
+      {loading ? (
+        <div>Loading stats...</div>
+      ) : (
+        stats.map((stat, index) => (
+          <StatCard
+            key={index}
+            icon={stat.icon}
+            title={stat.title}
+            value={stat.value}
+            description={stat.description}
+          />
+        ))
+      )}
     </div>
   );
 };
