@@ -9,18 +9,36 @@ import BookingForm from '@/components/BookingForm';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+import { useQuery } from '@tanstack/react-query';
 
-const barbers = [
-  { id: 1, name: "John Smith", specialty: "Classic Cuts", image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" },
-  { id: 2, name: "David Johnson", specialty: "Modern Styles", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" },
-  { id: 3, name: "Michael Williams", specialty: "Beard Specialist", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" },
-];
+type Barber = Tables<'profiles'>;
+
+const fetchBarbers = async (): Promise<Barber[]> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'barber');
+    
+  if (error) {
+    console.error('Error fetching barbers:', error);
+    throw new Error('Failed to fetch barbers');
+  }
+  
+  return data || [];
+};
 
 const Booking = () => {
-  const [selectedBarber, setSelectedBarber] = useState<number | null>(null);
+  const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookingComplete, setBookingComplete] = useState(false);
+  
+  const { data: barbers = [], isLoading: isLoadingBarbers } = useQuery({
+    queryKey: ['barbers'],
+    queryFn: fetchBarbers
+  });
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -73,30 +91,52 @@ const Booking = () => {
                   {/* Barber Selection */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Choose Your Barber</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {barbers.map((barber) => (
-                        <button
-                          key={barber.id}
-                          className={cn(
-                            "glass-card p-4 text-left transition-all",
-                            selectedBarber === barber.id 
-                              ? "ring-2 ring-primary" 
-                              : "hover:shadow-md"
-                          )}
-                          onClick={() => setSelectedBarber(barber.id)}
-                        >
-                          <div className="w-full aspect-square rounded-full overflow-hidden mb-4">
-                            <img 
-                              src={barber.image} 
-                              alt={barber.name}
-                              className="w-full h-full object-cover"
-                            />
+                    {isLoadingBarbers ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="glass-card p-4 animate-pulse">
+                            <div className="w-full aspect-square rounded-full bg-slate-200 dark:bg-slate-700 mb-4"></div>
+                            <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
                           </div>
-                          <h4 className="font-semibold">{barber.name}</h4>
-                          <p className="text-sm text-muted-foreground">{barber.specialty}</p>
-                        </button>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : barbers.length === 0 ? (
+                      <div className="text-center py-6 border border-dashed rounded-md border-slate-200 dark:border-slate-700">
+                        <p className="text-muted-foreground">No barbers available at the moment.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {barbers.map((barber) => (
+                          <button
+                            key={barber.id}
+                            className={cn(
+                              "glass-card p-4 text-left transition-all",
+                              selectedBarber === barber.id 
+                                ? "ring-2 ring-primary" 
+                                : "hover:shadow-md"
+                            )}
+                            onClick={() => setSelectedBarber(barber.id)}
+                          >
+                            <div className="w-full aspect-square rounded-full overflow-hidden mb-4">
+                              {barber.image_url ? (
+                                <img 
+                                  src={barber.image_url} 
+                                  alt={barber.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                                  {barber.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <h4 className="font-semibold">{barber.name}</h4>
+                            <p className="text-sm text-muted-foreground">{barber.specialty || 'Barber'}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Calendar */}
@@ -123,7 +163,7 @@ const Booking = () => {
                       <div className="flex items-center py-2 border-b">
                         <div className="font-medium">Barber:</div>
                         <div className="ml-auto">
-                          {barbers.find(b => b.id === selectedBarber)?.name}
+                          {barbers.find(b => b.id === selectedBarber)?.name || ''}
                         </div>
                       </div>
                     )}

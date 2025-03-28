@@ -7,7 +7,7 @@ interface TimeSlotPickerProps {
   selectedDate: Date | undefined;
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
-  selectedBarber: number | null;
+  selectedBarber: string | null;
 }
 
 const TimeSlotPicker = ({ 
@@ -23,14 +23,10 @@ const TimeSlotPicker = ({
   
   // Simulate unavailable slots based on selected barber
   // This would be replaced with actual data from Supabase
-  const getUnavailableSlots = (barberId: number | null) => {
+  const getUnavailableSlots = (barberId: string | null) => {
     if (!barberId) return [];
     
-    // Simulate different availability for different barbers
-    if (barberId === 1) return ['9:00 AM', '1:00 PM'];
-    if (barberId === 2) return ['11:00 AM', '5:00 PM'];
-    if (barberId === 3) return ['10:00 AM', '2:00 PM', '7:00 PM'];
-    
+    // In a real app, query bookings to find unavailable slots
     return [];
   };
   

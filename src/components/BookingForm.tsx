@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +22,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -43,11 +45,26 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface BookingFormProps {
-  selectedBarber: number | null;
+  selectedBarber: string | null;
   selectedDate: Date | undefined;
   selectedTime: string | null;
   onCompleted: () => void;
 }
+
+const fetchServices = async () => {
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('active', true)
+    .order('name');
+    
+  if (error) {
+    console.error('Error fetching services:', error);
+    throw new Error('Failed to fetch services');
+  }
+  
+  return data || [];
+};
 
 const BookingForm = ({ 
   selectedBarber, 
@@ -57,16 +74,10 @@ const BookingForm = ({
 }: BookingFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // In a real app, this would come from Supabase
-  const services = [
-    { id: 1, name: "Classic Cut", price: "$35" },
-    { id: 2, name: "Premium Experience", price: "$55" },
-    { id: 3, name: "Beard Grooming", price: "$25" },
-    { id: 4, name: "Buzz Cut", price: "$25" },
-    { id: 5, name: "Skin Fade", price: "$45" },
-    { id: 6, name: "Hot Towel Shave", price: "$35" },
-    { id: 7, name: "Hair Coloring", price: "$65+" },
-  ];
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: fetchServices
+  });
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -88,25 +99,82 @@ const BookingForm = ({
     setIsSubmitting(true);
     
     try {
-      // Simulate API call to Supabase (in a real app, this would save to Supabase)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const selectedService = services.find(s => s.id.toString() === values.service);
+      const duration = selectedService?.duration || 30;
       
-      console.log("Booking details:", {
-        ...values,
-        barberId: selectedBarber,
-        date: selectedDate,
-        time: selectedTime,
-      });
+      const [hours, minutes] = selectedTime.split(':');
+      const isPM = selectedTime.includes('PM');
+      let startHour = parseInt(hours);
+      
+      if (isPM && startHour < 12) {
+        startHour += 12;
+      } else if (!isPM && startHour === 12) {
+        startHour = 0;
+      }
+      
+      const startMinutes = parseInt(minutes);
+      
+      let endHour = startHour;
+      let endMinutes = startMinutes + duration;
+      
+      if (endMinutes >= 60) {
+        endHour += Math.floor(endMinutes / 60);
+        endMinutes = endMinutes % 60;
+      }
+      
+      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+      
+      const { error } = await supabase
+        .from('bookings')
+        .insert({
+          barber_id: selectedBarber,
+          service_id: parseInt(values.service),
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          start_time: convertTo24Hour(selectedTime),
+          end_time: endTime,
+          customer_name: values.name,
+          customer_email: values.email,
+          customer_phone: values.phone,
+          notes: values.notes || null,
+          status: 'confirmed'
+        });
+        
+      if (error) {
+        throw error;
+      }
       
       toast.success("Booking confirmed! We'll see you soon.");
       form.reset();
       onCompleted();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Booking error:", error);
-      toast.error("There was a problem with your booking. Please try again.");
+      toast.error(error.message || "There was a problem with your booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  const convertTo24Hour = (time12h: string) => {
+    const [time, modifier] = time12h.split(' ');
+    const [hours, minutes] = time.split(':');
+    
+    let hourIn24 = parseInt(hours, 10);
+    
+    if (hours === '12') {
+      hourIn24 = modifier === 'PM' ? 12 : 0;
+    } else if (modifier === 'PM') {
+      hourIn24 += 12;
+    }
+    
+    return `${hourIn24.toString().padStart(2, '0')}:${minutes}`;
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount);
   };
 
   return (
@@ -177,7 +245,7 @@ const BookingForm = ({
                   <SelectContent>
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.id.toString()}>
-                        {service.name} - {service.price}
+                        {service.name} - {formatCurrency(service.price)}
                       </SelectItem>
                     ))}
                   </SelectContent>
