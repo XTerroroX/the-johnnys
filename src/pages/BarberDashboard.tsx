@@ -1,4 +1,5 @@
 // src/components/BarberDashboard.tsx
+import Navbar from '@/components/Navbar';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -297,6 +298,9 @@ const BarberDashboard = () => {
   };
 
   return (
+  <>
+    <Navbar />  {/* <- Add this line */}
+    
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
