@@ -28,7 +28,7 @@ const StatCard = ({
 );
 
 interface BarberStatsProps {
-  barberId: string; // Assuming this is a UUID string
+  barberId: string; // assuming barberId is a UUID string
 }
 
 const BarberStats = ({ barberId }: BarberStatsProps) => {
@@ -41,56 +41,50 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
         setLoading(true);
         const now = new Date();
 
-        // Monthly stats range: from the first day to the last day of the current month.
+        // For monthly stats: from the first day to the last day of the current month
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-        // Fetch monthly bookings for the given barber
+        // Fetch monthly bookings for the given barber.
+        // Join the services table to get the service price and duration.
         const { data: monthlyBookings, error: monthlyError } = await supabase
           .from('bookings')
-          .select('customer_email, start_time, end_time, services(cost)')
+          .select(`customer_email, start_time, end_time, services(price,duration)`)
           .eq('barber_id', barberId)
           .gte('date', startOfMonth)
           .lte('date', endOfMonth);
 
         if (monthlyError) {
           console.error('Error fetching monthly bookings:', monthlyError);
+          setLoading(false);
+          return;
         }
 
-        // Ensure we have an array to work with
+        // Use an empty array if no bookings are returned
         const bookings = monthlyBookings || [];
 
-        // Initialize counters
         let totalRevenue = 0;
         const clientSet = new Set<string>();
         let totalServiceTime = 0;
         let serviceCount = 0;
 
         bookings.forEach((booking: any) => {
-          // Sum revenue using cost from the joined services record
-          if (booking.services && booking.services.cost) {
-            totalRevenue += parseFloat(booking.services.cost);
+          // Sum up the revenue using the price from the joined services record
+          if (booking.services && booking.services.price) {
+            totalRevenue += parseFloat(booking.services.price);
           }
+          // Count unique clients
           if (booking.customer_email) {
             clientSet.add(booking.customer_email);
           }
-          if (booking.start_time && booking.end_time) {
-            // Parse time strings in "HH:MM:SS" format to minutes
-            const parseTime = (timeStr: string) => {
-              const parts = timeStr.split(':').map(Number);
-              return parts[0] * 60 + parts[1] + (parts[2] ? parts[2] / 60 : 0);
-            };
-            const startMinutes = parseTime(booking.start_time);
-            const endMinutes = parseTime(booking.end_time);
-            const duration = endMinutes - startMinutes;
-            if (duration > 0) {
-              totalServiceTime += duration;
-              serviceCount++;
-            }
+          // Sum service durations using the duration from the services table.
+          // We assume duration is stored as an integer (minutes)
+          if (booking.services && booking.services.duration) {
+            totalServiceTime += parseInt(booking.services.duration, 10);
+            serviceCount++;
           }
         });
 
-        // Calculate average service time (in minutes)
         const avgServiceTime = serviceCount > 0 ? (totalServiceTime / serviceCount).toFixed(1) : '0';
         const earningsFormatted = `$${totalRevenue.toFixed(2)}`;
         const clientsServed = clientSet.size;
@@ -134,15 +128,14 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
             title: 'Avg. Service Time',
             value: `${avgServiceTime} min`,
-            description: 'Average duration of appointments',
+            description: 'Average duration of services',
           },
         ];
 
-        // Always set stats even if they are zero
         setStats(newStats);
       } catch (error) {
         console.error('Error fetching barber stats:', error);
-        // Set fallback values in case of an error
+        // Fallback: Render stat boxes with zeros if an error occurs.
         setStats([
           {
             icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
@@ -166,7 +159,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
             icon: <Timer className="h-4 w-4 text-muted-foreground" />,
             title: 'Avg. Service Time',
             value: '0 min',
-            description: 'Average duration of appointments',
+            description: 'Average duration of services',
           },
         ]);
       } finally {
