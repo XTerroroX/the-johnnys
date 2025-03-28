@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Bell, Check, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { notificationService } from '@/services/notificationService';
 import {
   Popover,
   PopoverContent,
@@ -41,71 +41,31 @@ const BarberNotifications = ({ barberId }: BarberNotificationsProps) => {
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('booking_notifications')
-        .select(`
-          id,
-          created_at,
-          is_read,
-          booking:bookings(
-            id,
-            customer_name,
-            date,
-            start_time,
-            service:services(name)
-          )
-        `)
-        .eq('barber_id', barberId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      
+      const data = await notificationService.fetchNotifications(barberId);
       setNotifications(data as Notification[]);
       setUnreadCount(data.filter(n => !n.is_read).length);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
     } finally {
       setIsLoading(false);
     }
   };
 
   const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('booking_notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-      
+    const success = await notificationService.markAsRead(notificationId);
+    if (success) {
       // Update local state
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
     }
   };
 
   const markAllAsRead = async () => {
-    try {
-      const { error } = await supabase
-        .from('booking_notifications')
-        .update({ is_read: true })
-        .eq('barber_id', barberId)
-        .eq('is_read', false);
-
-      if (error) throw error;
-      
+    const success = await notificationService.markAllAsRead(barberId);
+    if (success) {
       // Update local state
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -117,7 +77,7 @@ const BarberNotifications = ({ barberId }: BarberNotificationsProps) => {
     
     // Subscribe to realtime updates for new notifications
     const channel = supabase
-      .channel('custom-insert-channel')
+      .channel('booking-notifications')
       .on(
         'postgres_changes',
         { 

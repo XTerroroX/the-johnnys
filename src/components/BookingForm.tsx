@@ -100,7 +100,13 @@ const BookingForm = ({
     
     try {
       const selectedService = services.find(s => s.id.toString() === values.service);
+      if (!selectedService) {
+        throw new Error("Selected service not found");
+      }
+      
       const duration = selectedService?.duration || 30;
+      
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
       const time24h = convertTo24Hour(selectedTime);
       
@@ -116,12 +122,25 @@ const BookingForm = ({
       
       const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       
+      console.log('Booking payload:', {
+        barber_id: selectedBarber,
+        service_id: parseInt(values.service),
+        date: formattedDate,
+        start_time: time24h,
+        end_time: endTime,
+        customer_name: values.name,
+        customer_email: values.email,
+        customer_phone: values.phone,
+        notes: values.notes || null,
+        status: 'confirmed'
+      });
+      
       const { data, error } = await supabase
         .from('bookings')
         .insert({
           barber_id: selectedBarber,
           service_id: parseInt(values.service),
-          date: format(selectedDate, 'yyyy-MM-dd'),
+          date: formattedDate,
           start_time: time24h,
           end_time: endTime,
           customer_name: values.name,
@@ -130,8 +149,7 @@ const BookingForm = ({
           notes: values.notes || null,
           status: 'confirmed'
         })
-        .select()
-        .single();
+        .select();
         
       if (error) {
         console.error("Booking error details:", error);
