@@ -40,65 +40,65 @@ const ProfileImageUpload = ({
   };
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image size should be less than 5MB');
+    return;
+  }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
+  setIsUploading(true);
 
-    setIsUploading(true);
+  try {
+    // Force the MIME type to "image/jpeg" (or adjust if you're sure it's PNG, etc.)
+    // Even if file.type is correct, we override to be sure.
+    const forcedFile = new File([file], file.name, { type: 'image/jpeg' });
 
-    try {
-      // Create a unique file path with user ID
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+    // Create a unique file path with user ID
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
-      // Upload the file to the 'barber_profiles' bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('barber_profiles')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: file.type || 'image/jpeg'
-        });
-      if (uploadError) throw uploadError;
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('barber_profiles')
+      .upload(filePath, forcedFile, {
+        upsert: true,
+        contentType: 'image/jpeg', // forcibly set
+      });
+    if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('barber_profiles')
-        .getPublicUrl(uploadData.path);
+    console.log("Upload success data:", uploadData);
 
-      let publicUrl = publicUrlData.publicUrl;
-      console.log("Raw Public URL:", publicUrl);
+    // Get the public URL
+    let { data: publicUrlData } = supabase.storage
+      .from('barber_profiles')
+      .getPublicUrl(uploadData.path);
 
-      // Append cache-buster to ensure new image is fetched
-      publicUrl += `?cb=${Date.now()}`;
+    let publicUrl = publicUrlData.publicUrl;
+    // Append cache-buster
+    publicUrl += `?cb=${Date.now()}`;
+    console.log("Final Public URL:", publicUrl);
 
-      // Update user profile with the new URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ image_url: publicUrl })
-        .eq('id', userId);
-      if (updateError) throw updateError;
+    // Update 'profiles' table
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ image_url: publicUrl })
+      .eq('id', userId);
+    if (updateError) throw updateError;
 
-      // Call the callback with the new (cache-busted) URL
-      onImageUpdated(publicUrl);
-      toast.success('Profile image updated successfully');
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      toast.error(error.message || 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+    // Notify parent
+    onImageUpdated(publicUrl);
+    toast.success('Profile image updated successfully');
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    toast.error(error.message || 'Failed to upload image');
+  } finally {
+    setIsUploading(false);
+  }
+};
+
 
   return (
     <div className="flex flex-col items-center">
