@@ -1,3 +1,4 @@
+import Navbar from '@/components/Navbar';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -548,6 +549,8 @@ const AdminDashboard = () => {
   }, [servicesError, barbersError, bookingsError]);
 
   return (
+    <>
+    <Navbar />  {/* <- Add this line */}
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
         <h1 className="font-display font-bold text-xl">Admin Dashboard</h1>
