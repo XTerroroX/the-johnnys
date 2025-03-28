@@ -189,11 +189,7 @@ const Login = () => {
                   </Button>
                 </div>
                 
-                <div className="text-center text-sm text-muted-foreground mt-6">
-                  <p>Demo credentials:</p>
-                  <p>Admin: admin@thejohnnys.com / password</p>
-                  <p>Barber: barber@thejohnnys.com / password</p>
-                </div>
+                
               </form>
             </Form>
           </div>
