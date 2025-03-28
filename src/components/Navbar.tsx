@@ -1,16 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import BarberNotifications from '@/components/BarberNotifications';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const [isBarber, setIsBarber] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +21,56 @@ const Navbar = () => {
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Check for current user
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Check if user is a barber
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (data && data.role === 'barber') {
+          setIsBarber(true);
+        }
+      }
+    };
+    
+    checkUser();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setUser(session.user);
+          
+          // Check if user is a barber
+          const { data } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (data && data.role === 'barber') {
+            setIsBarber(true);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsBarber(false);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const navigationItems = [
@@ -61,12 +113,26 @@ const Navbar = () => {
 
           {/* CTA / Auth */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="outline" size="sm" className="smooth-transition">
-                <User className="w-4 h-4 mr-2" />
-                Log In
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                {isBarber && (
+                  <BarberNotifications barberId={user.id} />
+                )}
+                <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"}>
+                  <Button variant="outline" size="sm" className="smooth-transition">
+                    <User className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="smooth-transition">
+                  <User className="w-4 h-4 mr-2" />
+                  Log In
+                </Button>
+              </Link>
+            )}
             <Link to="/booking">
               <Button className="smooth-transition">Book Now</Button>
             </Link>
@@ -106,15 +172,34 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="pt-4 flex flex-col space-y-4">
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-center smooth-transition"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Log In
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  {isBarber && (
+                    <div className="py-2">
+                      <BarberNotifications barberId={user.id} />
+                    </div>
+                  )}
+                  <Link to={isBarber ? "/barber-dashboard" : "/admin-dashboard"} onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-center smooth-transition"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center smooth-transition"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Log In
+                  </Button>
+                </Link>
+              )}
               <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full justify-center smooth-transition">
                   Book Now
@@ -123,10 +208,6 @@ const Navbar = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {isBarber && (
-        <BarberNotifications barberId={user.id} />
       )}
     </header>
   );
