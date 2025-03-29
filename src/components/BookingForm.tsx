@@ -2,45 +2,21 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'sonner';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-
-/** 
- * Use some multi-select component for services. 
- * Below we demonstrate a simple "checkbox list" approach. 
- * For a real UI, you might use a library like React Select's MultiSelect.
- */
-
-// For this example, each service is { id, name, price, duration }
-const fetchServices = async () => {
-  const { data, error } = await supabase
-    .from('services')
-    .select('*')
-    .eq('active', true)
-    .order('name');
-    
-  if (error) {
-    console.error('Error fetching services:', error);
-    throw new Error('Failed to fetch services');
-  }
-  
-  return data || [];
-};
+import CustomerInfoFields from './CustomerInfoFields';
+import ServiceSelection from './ServiceSelection';
+import { 
+  fetchServices, 
+  convertTo24Hour, 
+  calculateEndTime, 
+  formatBookingDate 
+} from '@/utils/bookingUtils';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -70,7 +46,7 @@ const BookingForm = ({
   
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
-    queryFn: fetchServices
+    queryFn: () => fetchServices(supabase)
   });
   
   const form = useForm<FormValues>({
@@ -108,18 +84,13 @@ const BookingForm = ({
       });
 
       // Format the date
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = formatBookingDate(selectedDate);
       
       // Convert selectedTime (e.g. "10:00 AM") to 24-hour for storing
       const time24h = convertTo24Hour(selectedTime);
       
-      // Calculate end time: start_time + totalDuration
-      const [startH, startM] = time24h.split(':').map(Number);
-      let endH = startH;
-      let endM = startM + totalDuration;
-      endH += Math.floor(endM / 60);
-      endM = endM % 60;
-      const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      // Calculate end time
+      const endTime = calculateEndTime(selectedTime, totalDuration);
 
       // Fix: Use the first chosen service's ID as service_id (required field)
       // Get the first chosen service ID or default to 1 if none available
@@ -165,170 +136,40 @@ const BookingForm = ({
       setIsSubmitting(false);
     }
   };
-  
-  const convertTo24Hour = (time12h: string) => {
-    // e.g. "10:00 AM" => "10:00"
-    const [time, modifier] = time12h.split(' ');
-    const [hh, mm] = time.split(':').map(Number);
-    let hourIn24 = hh;
-    
-    if (hh === 12) {
-      hourIn24 = modifier === 'PM' ? 12 : 0;
-    } else if (modifier === 'PM') {
-      hourIn24 += 12;
-    }
-    return `${hourIn24.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
-  };
-
-  // Helper to format price
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
-  // Calculate total price for the selected services in real-time
-  const selectedServiceObjects = services.filter(svc =>
-    form.watch('selectedServices').includes(svc.id.toString())
-  );
-  const totalPrice = selectedServiceObjects.reduce((sum, svc) => sum + parseFloat(svc.price), 0);
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Your Information</h3>
       
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Name */}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <FormProvider {...form}>
+        <Form>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Customer Information Fields */}
+            <CustomerInfoFields />
 
-          {/* Email & Phone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="john@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Service Selection */}
+            <ServiceSelection services={services} />
             
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="(555) 123-4567" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Multi-Select Services */}
-          <FormField
-            control={form.control}
-            name="selectedServices"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Services</FormLabel>
-                <div className="space-y-2">
-                  {services.map(service => (
-                    <div key={service.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`svc-${service.id}`}
-                        value={service.id.toString()}
-                        // Check if the service ID is in the array
-                        checked={field.value.includes(service.id.toString())}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // add
-                            field.onChange([...field.value, service.id.toString()]);
-                          } else {
-                            // remove
-                            field.onChange(field.value.filter((val: string) => val !== service.id.toString()));
-                          }
-                        }}
-                        className="mr-2"
-                      />
-                      <label htmlFor={`svc-${service.id}`}>
-                        {service.name} - {formatCurrency(parseFloat(service.price))} ({service.duration} min)
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Display total price for user reference */}
-          {selectedServiceObjects.length > 0 && (
-            <p className="text-sm font-medium mt-2">
-              Total: {formatCurrency(totalPrice)}
-            </p>
-          )}
-
-          {/* Notes */}
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Special Requests</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Any special requests or notes for your barber..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Submit */}
-          <div className="pt-4">
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting || !selectedBarber || !selectedDate || !selectedTime}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing
-                </>
-              ) : (
-                "Confirm Booking"
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+            {/* Submit */}
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting || !selectedBarber || !selectedDate || !selectedTime}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing
+                  </>
+                ) : (
+                  "Confirm Booking"
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </FormProvider>
     </div>
   );
 };
