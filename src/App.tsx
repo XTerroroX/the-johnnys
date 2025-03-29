@@ -14,7 +14,23 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Safari polyfill for structured clone algorithm
+if (!window.structuredClone) {
+  window.structuredClone = (obj) => {
+    return JSON.parse(JSON.stringify(obj));
+  };
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Add some retry logic and staleTime to improve cache handling
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false, // Prevent unnecessary refetches in Safari
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

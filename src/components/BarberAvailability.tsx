@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BarberAvailabilityProps {
   barberId: string;
@@ -73,6 +74,7 @@ const BarberAvailability = ({ barberId }: BarberAvailabilityProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -156,6 +158,96 @@ const BarberAvailability = ({ barberId }: BarberAvailabilityProps) => {
     );
   }
 
+  // Render the mobile version with a stacked layout
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {daysOfWeek.map(day => {
+          const dayData = availability.find(a => a.day_of_week === day.value);
+          if (!dayData) return null;
+          
+          return (
+            <Card key={day.value} className="overflow-hidden">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="font-medium">{day.label}</div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      checked={dayData.is_available} 
+                      onCheckedChange={(checked) => handleToggleAvailability(day.value, checked)}
+                    />
+                    <span className="text-sm">{dayData.is_available ? 'Available' : 'Unavailable'}</span>
+                  </div>
+                </div>
+                
+                {dayData.is_available && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">Start Time</label>
+                      <Select
+                        disabled={!dayData.is_available}
+                        value={dayData.start_time}
+                        onValueChange={(value) => handleTimeChange(day.value, 'start_time', value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Start time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {formatTimeForDisplay(time)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-gray-500 mb-1 block">End Time</label>
+                      <Select
+                        disabled={!dayData.is_available}
+                        value={dayData.end_time}
+                        onValueChange={(value) => handleTimeChange(day.value, 'end_time', value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="End time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {formatTimeForDisplay(time)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+        
+        <div className="flex justify-end">
+          <Button 
+            onClick={saveAvailability} 
+            disabled={isSaving || !hasChanges}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Availability'
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout (original)
   return (
     <div className="space-y-4">
       {daysOfWeek.map(day => {
