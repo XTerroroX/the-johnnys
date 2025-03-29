@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import ProfileImageUpload from '@/components/ProfileImageUpload';
 import ChangePassword from '@/components/ChangePassword';
+import BarberAvailability from '@/components/BarberAvailability';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -220,6 +221,19 @@ const ProfileSettings = ({ userId, userRole }: ProfileSettingsProps) => {
           </Form>
         </CardContent>
       </Card>
+      
+      {/* Allow both barbers and superadmins to edit availability */}
+      {(userRole === 'barber' || userRole === 'superadmin') && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Availability</CardTitle>
+            <CardDescription>Set your working hours</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarberAvailability barberId={userId} />
+          </CardContent>
+        </Card>
+      )}
       
       <Card>
         <CardHeader>
