@@ -1,85 +1,49 @@
-// src/pages/BarberDashboard.tsx
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   LayoutDashboard, 
-  Settings, 
   LogOut, 
-  Clock,
-  Search,
+  User,
+  Settings,
   X,
-  ChevronDown,
-  CheckCircle,
-  XCircle,
-  ChevronRight
+  Clock,
+  MoreHorizontal,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
-import BarberStats from '@/components/BarberStats';
-import ProfileImageUpload from '@/components/ProfileImageUpload';
-import ChangePassword from '@/components/ChangePassword';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
+import BarberStats from '@/components/BarberStats';
+import BarberNotifications from '@/components/BarberNotifications';
+import ProfileSettings from '@/components/ProfileSettings';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import Navbar from '@/components/Navbar';
 
-interface Availability {
-  id: number;
-  barber_id: string;
-  day_of_week: number;
-  is_available: boolean;
-  start_time: string;
-  end_time: string;
-}
-
-interface Appointment {
-  id: number;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  service: {
-    id: number;
-    name: string;
-    price: number;
-  };
-  service_id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  status: 'confirmed' | 'completed' | 'cancelled';
-  notes: string | null;
-}
-
-const dayOfWeekNames = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday'
-];
-
 const BarberDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [barberProfile, setBarberProfile] = useState<any>(null);
-
+  const [userId, setUserId] = useState<string | null>(null);
+  
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -88,170 +52,73 @@ const BarberDashboard = () => {
         navigate("/login");
         return;
       }
+      
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role')
         .eq('id', session.user.id)
         .single();
-      if (error) {
-        toast.error("Error fetching profile: " + error.message);
-        navigate("/login");
-        return;
-      }
-      if (profile.role !== 'barber' && profile.role !== 'superadmin') {
+        
+      if (error || !profile || (profile.role !== 'barber' && profile.role !== 'superadmin')) {
         toast.error("You don't have permission to access the barber dashboard");
-        if (profile.role === 'superadmin') {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/");
-        }
-        return;
+        navigate("/");
+      } else {
+        setUserId(session.user.id);
       }
-      setBarberProfile(profile);
     };
+    
     checkAuth();
   }, [navigate]);
-
+  
   const { 
-    data: appointments = [], 
-    isLoading: isLoadingAppointments 
+    data: upcomingBookings = [], 
+    isLoading: isLoadingBookings 
   } = useQuery({
-    queryKey: ['barber-appointments', barberProfile?.id],
+    queryKey: ['barberBookings', userId],
     queryFn: async () => {
-      if (!barberProfile?.id) return [];
+      if (!userId) return [];
+      
+      const today = new Date();
+      const formattedDate = format(today, 'yyyy-MM-dd');
+      
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
           service:service_id (id, name, price, duration)
         `)
-        .eq('barber_id', barberProfile.id)
-        .order('date', { ascending: false });
-      if (error) throw error;
-      return data as Appointment[];
-    },
-    enabled: !!barberProfile?.id
-  });
-
-  const { 
-    data: availability = [], 
-    isLoading: isLoadingAvailability 
-  } = useQuery({
-    queryKey: ['barber-availability', barberProfile?.id],
-    queryFn: async () => {
-      if (!barberProfile?.id) return [];
-      const { data, error } = await supabase
-        .from('barber_availability')
-        .select('*')
-        .eq('barber_id', barberProfile.id)
-        .order('day_of_week');
-      if (error) throw error;
-      return data as Availability[];
-    },
-    enabled: !!barberProfile?.id
-  });
-
-  const updateAvailabilityMutation = useMutation({
-    mutationFn: async ({ id, is_available, start_time, end_time }: { id: number, is_available: boolean, start_time?: string, end_time?: string }) => {
-      const updateData: any = { 
-        is_available,
-        updated_at: new Date().toISOString()
-      };
-      if (start_time) updateData.start_time = start_time;
-      if (end_time) updateData.end_time = end_time;
-      const { data, error } = await supabase
-        .from('barber_availability')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('barber_id', userId)
+        .gte('date', formattedDate)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true });
+        
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['barber-availability', barberProfile?.id] });
-      toast.success("Availability updated successfully");
-    },
-    onError: (error: any) => {
-      toast.error(`Error updating availability: ${error.message}`);
-    }
+    enabled: !!userId
   });
-
-  const updateAppointmentStatusMutation = useMutation({
+  
+  const updateBookingStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: 'confirmed' | 'completed' | 'cancelled' }) => {
       const { data, error } = await supabase
         .from('bookings')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq('id', id)
-        .eq('barber_id', barberProfile?.id)
         .select()
         .single();
+      
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['barber-appointments', barberProfile?.id] });
-      toast.success("Appointment status updated");
+      queryClient.invalidateQueries({ queryKey: ['barberBookings'] });
+      toast.success("Booking status updated");
     },
-    onError: (error: any) => {
-      toast.error(`Error updating appointment: ${error.message}`);
+    onError: (error) => {
+      toast.error(`Error updating booking status: ${error.message}`);
     }
   });
-
-  const filteredAppointments = appointments.filter(appointment => 
-    appointment.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    appointment.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    appointment.service.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const upcomingAppointments = filteredAppointments.filter(
-    appointment => appointment.status === 'confirmed'
-  );
-  const pastAppointments = filteredAppointments.filter(
-    appointment => appointment.status === 'completed' || appointment.status === 'cancelled'
-  );
-
-  const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
-  };
-
-  const handleTimeChange = (availabilityId: number, field: 'start_time' | 'end_time', value: string) => {
-    const formattedTime = value + ':00';
-    updateAvailabilityMutation.mutate({ 
-      id: availabilityId, 
-      is_available: true,
-      [field]: formattedTime 
-    });
-  };
-
-  const handleAvailabilityChange = (id: number, checked: boolean) => {
-    updateAvailabilityMutation.mutate({ id, is_available: checked });
-  };
-
-  const handleMarkAsCompleted = (id: number) => {
-    updateAppointmentStatusMutation.mutate({ id, status: 'completed' });
-  };
-
-  const handleCancelAppointment = (id: number) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      updateAppointmentStatusMutation.mutate({ id, status: 'cancelled' });
-    }
-  };
-
-  const handleProfileImageUpdated = (newImageUrl: string) => {
-    console.log("Updated image URL from ProfileImageUpload:", newImageUrl);
-    setBarberProfile((prev: any) => ({ ...prev, image_url: newImageUrl }));
-    queryClient.invalidateQueries({ queryKey: ['barber-profile'] });
-    toast.success('Profile image updated successfully');
-  };
-
+  
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -261,367 +128,390 @@ const BarberDashboard = () => {
       navigate("/login");
     }
   };
-
+  
+  // Skip rendering until we have authenticated the user
+  if (!userId) {
+    return null;
+  }
+  
   return (
-    <>
-      <Navbar />
-      {/* Add padding-top to push content below the fixed navbar */}
-      <div className="pt-20">
-        <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50 dark:bg-slate-900">
-          <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
-            <div className="text-center p-4 border-b mb-6">
-              <h1 className="font-display font-bold text-xl">Barber Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome, {barberProfile?.name || 'Barber'}</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <Navbar />
+      </div>
+      
+      <div className="flex h-screen pt-[var(--navbar-height)]">
+        {/* Sidebar */}
+        <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-30 pt-[var(--navbar-height)] bg-sidebar-background border-r border-sidebar-border">
+          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+            <div className="px-4 mb-6">
+              <BarberNotifications barberId={userId} />
             </div>
-            <nav className="space-y-2 flex-1">
-              {[
-                { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", value: "dashboard" },
-                { icon: <Calendar className="h-5 w-5" />, label: "Appointments", value: "appointments" },
-                { icon: <Clock className="h-5 w-5" />, label: "Availability", value: "availability" },
-                { icon: <Settings className="h-5 w-5" />, label: "Settings", value: "settings" },
-              ].map((item) => (
-                <Button
-                  key={item.value}
-                  variant={activeTab === item.value ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setActiveTab(item.value)}
-                >
-                  {item.icon}
-                  <span className="ml-2">{item.label}</span>
-                </Button>
-              ))}
-            </nav>
-            <div className="mt-auto pt-6 border-t">
+            <nav className="mt-5 flex-1 px-3 space-y-1">
+              <Button
+                variant={activeTab === "dashboard" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("dashboard")}
+              >
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                Dashboard
+              </Button>
+              <Button
+                variant={activeTab === "appointments" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("appointments")}
+              >
+                <Calendar className="mr-2 h-5 w-5" />
+                Appointments
+              </Button>
+              <Button
+                variant={activeTab === "profile" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("profile")}
+              >
+                <User className="mr-2 h-5 w-5" />
+                My Profile
+              </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5" />
-                <span className="ml-2">Logout</span>
+                <LogOut className="mr-2 h-5 w-5" />
+                Logout
               </Button>
-            </div>
-          </aside>
-          <main className="flex-1 p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="hidden">
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                <TabsTrigger value="availability">Availability</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-              {/* Dashboard Tab */}
-              <TabsContent value="dashboard" className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-3xl font-bold tracking-tight">Your Dashboard</h2>
-                </div>
-                {barberProfile && <BarberStats barberId={barberProfile.id} />}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Today's Appointments</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {isLoadingAppointments ? (
-                        <p className="text-center text-muted-foreground py-4">Loading appointments...</p>
-                      ) : (
-                        <>
-                          {appointments
-                            .filter(appointment => 
-                              appointment.status === 'confirmed' && 
-                              appointment.date === format(new Date(), 'yyyy-MM-dd')
-                            )
-                            .map((appointment) => (
-                              <div key={appointment.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                                <div>
-                                  <p className="font-medium">{appointment.customer_name}</p>
-                                  <p className="text-sm text-muted-foreground">{appointment.service.name}</p>
-                                </div>
-                                <span className="text-sm font-medium">{formatTime(appointment.start_time)}</span>
-                              </div>
-                            ))}
-                          {appointments.filter(appointment => 
-                            appointment.status === 'confirmed' && 
-                            appointment.date === format(new Date(), 'yyyy-MM-dd')
-                          ).length === 0 && (
-                            <p className="text-center text-muted-foreground py-4">No appointments today.</p>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Weekly Schedule</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {isLoadingAvailability ? (
-                        <p className="text-center text-muted-foreground py-4">Loading availability...</p>
-                      ) : (
-                        <>
-                          {availability.map((day) => (
-                            <div key={day.id} className="flex items-center justify-between">
-                              <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
-                              <span className={day.is_available ? "text-green-600" : "text-red-500"}>
-                                {day.is_available ? (
-                                  <span>{formatTime(day.start_time)} - {formatTime(day.end_time)}</span>
-                                ) : (
-                                  "Unavailable"
-                                )}
-                              </span>
-                            </div>
-                          ))}
-                          {availability.length === 0 && (
-                            <p className="text-center text-muted-foreground py-4">No availability set.</p>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-              {/* Appointments Tab */}
-              <TabsContent value="appointments">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                  <h2 className="text-3xl font-bold tracking-tight">Your Appointments</h2>
-                  <div className="w-full sm:w-auto relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search appointments..."
-                      className="pl-10 w-full sm:w-[300px]"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle>Upcoming Appointments</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingAppointments ? (
-                      <p className="text-center text-muted-foreground py-4">Loading appointments...</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {upcomingAppointments.map((appointment) => (
-                          <div key={appointment.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                            <div className="mb-2 sm:mb-0">
-                              <p className="font-medium">{appointment.customer_name}</p>
-                              <p className="text-sm text-muted-foreground">{appointment.service.name}</p>
-                            </div>
-                            <div className="flex flex-col sm:items-end">
-                              <p className="text-sm font-medium">
-                                {format(new Date(appointment.date), 'MMMM d, yyyy')}, {formatTime(appointment.start_time)}
-                              </p>
-                              <div className="flex mt-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="mr-2"
-                                  onClick={() => handleMarkAsCompleted(appointment.id)}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Mark Completed
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => handleCancelAppointment(appointment.id)}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {upcomingAppointments.length === 0 && (
-                          <p className="text-center text-muted-foreground py-4">No upcoming appointments found.</p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Appointment History</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingAppointments ? (
-                      <p className="text-center text-muted-foreground py-4">Loading appointment history...</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {pastAppointments.map((appointment) => (
-                          <div key={appointment.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                            <div className="mb-2 sm:mb-0">
-                              <p className="font-medium">{appointment.customer_name}</p>
-                              <p className="text-sm text-muted-foreground">{appointment.service.name}</p>
-                            </div>
-                            <div className="flex flex-col sm:items-end">
-                              <p className="text-sm font-medium">
-                                {format(new Date(appointment.date), 'MMMM d, yyyy')}, {formatTime(appointment.start_time)}
-                              </p>
-                              <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block
-                                ${appointment.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 
-                                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                }`}
-                              >
-                                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {pastAppointments.length === 0 && (
-                          <p className="text-center text-muted-foreground py-4">No appointment history found.</p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              {/* Availability Tab */}
-              <TabsContent value="availability" className="space-y-3">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Weekly Schedule</CardTitle>
-                    <CardDescription>
-                      Set the days and times when you are available for appointments.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {isLoadingAvailability ? (
-                      <p className="text-center text-muted-foreground py-4">Loading availability...</p>
-                    ) : (
-                      <>
-                        {availability && availability.length > 0 ? (
-                          availability.map((day) => (
-                            <div
-                              key={day.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                            >
-                              <div className="mb-2 sm:mb-0">
-                                <span className="capitalize">{dayOfWeekNames[day.day_of_week]}</span>
-                              </div>
-                              <div className="flex items-center space-x-4">
-                                <Switch
-                                  id={`availability-${day.id}`}
-                                  checked={day.is_available}
-                                  onCheckedChange={(checked) => handleAvailabilityChange(day.id, checked)}
-                                />
-                                {day.is_available && (
-                                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                                    <div>
-                                      <Label htmlFor={`start-time-${day.id}`} className="text-sm">
-                                        Start
-                                      </Label>
-                                      <Input
-                                        id={`start-time-${day.id}`}
-                                        type="time"
-                                        value={day.start_time.substring(0, 5)}
-                                        onChange={(e) =>
-                                          handleTimeChange(day.id, 'start_time', e.target.value)
-                                        }
-                                        className="w-32"
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor={`end-time-${day.id}`} className="text-sm">
-                                        End
-                                      </Label>
-                                      <Input
-                                        id={`end-time-${day.id}`}
-                                        type="time"
-                                        value={day.end_time.substring(0, 5)}
-                                        onChange={(e) =>
-                                          handleTimeChange(day.id, 'end_time', e.target.value)
-                                        }
-                                        className="w-32"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center text-muted-foreground py-4">
-                            No availability set. Please set your availability.
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              {/* Settings Tab */}
-              <TabsContent value="settings">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
-                </div>
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {barberProfile ? (
-                      <div className="space-y-6">
-                        <div className="flex flex-col items-center mb-6">
-                          <ProfileImageUpload
-                            userId={barberProfile.id}
-                            currentImageUrl={barberProfile.image_url}
-                            userName={barberProfile.name}
-                            onImageUpdated={handleProfileImageUpdated}
-                            size="lg"
-                            allowUpload={true}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input id="name" value={barberProfile.name} readOnly />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" type="email" value={barberProfile.email} readOnly />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="specialty">Specialty</Label>
-                            <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="joined">Member Since</Label>
-                            <Input 
-                              id="joined" 
-                              value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
-                              readOnly 
-                            />
-                          </div>
-                        </div>
-                        <div className="pt-4">
-                          <p className="text-sm text-muted-foreground">
-                            To update your profile information, please contact an administrator.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
-                    )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Change Password</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChangePassword />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </main>
+            </nav>
+          </div>
+        </aside>
+        
+        {/* Mobile menu button - shown on small screens */}
+        <div className="md:hidden fixed bottom-4 right-4 z-40">
+          <Button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+              >
+                <path
+                  d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                ></path>
+              </svg>
+            )}
+          </Button>
         </div>
+        
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm">
+            <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white dark:bg-slate-900 shadow-xl p-6">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold">Barber Menu</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <nav className="space-y-4">
+                <div className="mb-6">
+                  <BarberNotifications barberId={userId} />
+                </div>
+                <Button
+                  variant={activeTab === "dashboard" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("dashboard");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant={activeTab === "appointments" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("appointments");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Calendar className="mr-2 h-5 w-5" />
+                  Appointments
+                </Button>
+                <Button
+                  variant={activeTab === "profile" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <User className="mr-2 h-5 w-5" />
+                  My Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-5 w-5" />
+                  Logout
+                </Button>
+              </nav>
+            </div>
+          </div>
+        )}
+        
+        {/* Main content */}
+        <main className="flex-1 md:ml-64 p-4 md:p-8 pt-[var(--navbar-height)]">
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Barber Dashboard</h1>
+              </div>
+              
+              <BarberStats barberId={userId} />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Appointments</CardTitle>
+                  <CardDescription>Your next scheduled appointments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBookings ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
+                      </div>
+                    </div>
+                  ) : upcomingBookings.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No upcoming appointments scheduled.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Date & Time</TableHead>
+                            <TableHead>Service</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {upcomingBookings.slice(0, 5).map((booking: any) => (
+                            <TableRow key={booking.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{booking.customer_name}</p>
+                                  <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{new Date(booking.date).toLocaleDateString()}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{booking.service?.name || 'N/A'}</TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs 
+                                    ${booking.status === 'confirmed' && 'bg-blue-100 text-blue-800'}
+                                    ${booking.status === 'completed' && 'bg-green-100 text-green-800'}
+                                    ${booking.status === 'cancelled' && 'bg-red-100 text-red-800'}
+                                  `}
+                                >
+                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
+                                      disabled={booking.status === 'completed' || booking.status === 'cancelled'}
+                                    >
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Mark Completed
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
+                                      disabled={booking.status === 'cancelled' || booking.status === 'completed'}
+                                      className="text-red-600"
+                                    >
+                                      <X className="mr-2 h-4 w-4" />
+                                      Cancel
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Appointments Tab */}
+          {activeTab === "appointments" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Your Appointments</h1>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Appointments</CardTitle>
+                  <CardDescription>Manage your scheduled appointments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBookings ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
+                      </div>
+                    </div>
+                  ) : upcomingBookings.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No appointments scheduled.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Date & Time</TableHead>
+                            <TableHead>Service</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {upcomingBookings.map((booking: any) => (
+                            <TableRow key={booking.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{booking.customer_name}</p>
+                                  <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
+                                  {booking.customer_phone && (
+                                    <p className="text-sm text-muted-foreground">{booking.customer_phone}</p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{new Date(booking.date).toLocaleDateString()}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p>{booking.service?.name || 'N/A'}</p>
+                                  {booking.service?.price && (
+                                    <p className="text-sm text-muted-foreground">
+                                      ${parseFloat(booking.service.price).toFixed(2)}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs 
+                                    ${booking.status === 'confirmed' && 'bg-blue-100 text-blue-800'}
+                                    ${booking.status === 'completed' && 'bg-green-100 text-green-800'}
+                                    ${booking.status === 'cancelled' && 'bg-red-100 text-red-800'}
+                                  `}
+                                >
+                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
+                                      disabled={booking.status === 'completed' || booking.status === 'cancelled'}
+                                    >
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Mark Completed
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
+                                      disabled={booking.status === 'cancelled' || booking.status === 'completed'}
+                                      className="text-red-600"
+                                    >
+                                      <X className="mr-2 h-4 w-4" />
+                                      Cancel
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-8">
+              <h1 className="text-2xl font-bold">My Profile</h1>
+              {userId && <ProfileSettings userId={userId} userRole="barber" />}
+            </div>
+          )}
+        </main>
       </div>
-    </>
+    </div>
   );
 };
 

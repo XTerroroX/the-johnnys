@@ -100,6 +100,7 @@ export type Database = {
           end_time: string
           id: number
           notes: string | null
+          selected_services: Json | null
           service_id: number
           start_time: string
           status: string
@@ -115,6 +116,7 @@ export type Database = {
           end_time: string
           id?: number
           notes?: string | null
+          selected_services?: Json | null
           service_id: number
           start_time: string
           status?: string
@@ -130,6 +132,7 @@ export type Database = {
           end_time?: string
           id?: number
           notes?: string | null
+          selected_services?: Json | null
           service_id?: number
           start_time?: string
           status?: string
@@ -244,6 +247,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_barber_by_superadmin: {
+        Args: {
+          _id: string
+        }
+        Returns: undefined
+      }
+      get_all_bookings_for_admin: {
+        Args: {
+          _start: string
+          _end: string
+        }
+        Returns: {
+          id: number
+          customer_name: string
+          customer_email: string
+          customer_phone: string
+          barber_id: string
+          service_id: number
+          date: string
+          start_time: string
+          end_time: string
+          notes: string
+          status: string
+          created_at: string
+          updated_at: string
+          price: number
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string

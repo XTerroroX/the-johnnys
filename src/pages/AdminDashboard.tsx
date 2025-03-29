@@ -17,7 +17,8 @@ import {
   Plus,
   Trash,
   Edit,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminStats from '@/components/AdminStats';
+import ProfileSettings from '@/components/ProfileSettings';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,6 +164,7 @@ const AdminDashboard = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [barberFilter, setBarberFilter] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
@@ -179,6 +182,8 @@ const AdminDashboard = () => {
       if (error || !profile || profile.role !== 'superadmin') {
         toast.error("You don't have permission to access the admin dashboard");
         navigate("/");
+      } else {
+        setUserId(session.user.id);
       }
     };
     checkAuth();
@@ -529,200 +534,464 @@ const AdminDashboard = () => {
     if (bookingsError) toast.error("Error loading bookings: " + (bookingsError as Error).message);
   }, [servicesError, barbersError, bookingsError]);
   
-  return (
-    <>
-      <Navbar />
-      {/* Push content below the fixed navbar */}
-      <div className="pt-20">
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-          {/* Mobile header */}
-          <header className="lg:hidden sticky top-0 z-50 bg-white dark:bg-slate-950 border-b p-4 flex justify-between items-center">
-            <h1 className="font-display font-bold text-xl">Admin Dashboard</h1>
-            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X /> : <ChevronDown />}
-            </Button>
-          </header>
+  // Skip rendering until we have authenticated the user
+  if (!userId) {
+    return null;
+  }
   
-          {/* Mobile menu */}
-          <div className="lg:hidden bg-white dark:bg-slate-950 border-b p-4 animate-fade-in">
-            <nav className="space-y-2">
-              {[
-                { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", value: "dashboard" },
-                { icon: <Calendar className="h-5 w-5" />, label: "Bookings", value: "bookings" },
-                { icon: <Scissors className="h-5 w-5" />, label: "Services", value: "services" },
-                { icon: <UserPlus className="h-5 w-5" />, label: "Barbers", value: "barbers" },
-                { icon: <Settings className="h-5 w-5" />, label: "Settings", value: "settings" },
-              ].map((item) => (
-                <Button
-                  key={item.value}
-                  variant={activeTab === item.value ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setActiveTab(item.value);
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  {item.icon}
-                  <span className="ml-2">{item.label}</span>
-                </Button>
-              ))}
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <Navbar />
+      </div>
+      
+      <div className="flex h-screen pt-[var(--navbar-height)]">
+        {/* Sidebar */}
+        <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-30 pt-[var(--navbar-height)] bg-sidebar-background border-r border-sidebar-border">
+          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+            <nav className="mt-5 flex-1 px-3 space-y-1">
+              <Button
+                variant={activeTab === "dashboard" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("dashboard")}
+              >
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                Dashboard
+              </Button>
+              <Button
+                variant={activeTab === "services" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("services")}
+              >
+                <Scissors className="mr-2 h-5 w-5" />
+                Services
+              </Button>
+              <Button
+                variant={activeTab === "barbers" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("barbers")}
+              >
+                <UserPlus className="mr-2 h-5 w-5" />
+                Barbers
+              </Button>
+              <Button
+                variant={activeTab === "bookings" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("bookings")}
+              >
+                <Calendar className="mr-2 h-5 w-5" />
+                Bookings
+              </Button>
+              <Button
+                variant={activeTab === "profile" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("profile")}
+              >
+                <User className="mr-2 h-5 w-5" />
+                My Profile
+              </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5" />
-                <span className="ml-2">Logout</span>
+                <LogOut className="mr-2 h-5 w-5" />
+                Logout
               </Button>
             </nav>
           </div>
-  
-          <div className="flex flex-col lg:flex-row min-h-screen">
-            <aside className="hidden lg:flex flex-col w-64 border-r bg-white dark:bg-slate-950 p-4">
-              <div className="text-center p-4 border-b mb-6">
-                <h1 className="font-display font-bold text-xl">Admin Dashboard</h1>
-              </div>
-              <nav className="space-y-2 flex-1">
-                {[
-                  { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", value: "dashboard" },
-                  { icon: <Calendar className="h-5 w-5" />, label: "Bookings", value: "bookings" },
-                  { icon: <Scissors className="h-5 w-5" />, label: "Services", value: "services" },
-                  { icon: <UserPlus className="h-5 w-5" />, label: "Barbers", value: "barbers" },
-                  { icon: <Settings className="h-5 w-5" />, label: "Settings", value: "settings" },
-                ].map((item) => (
-                  <Button
-                    key={item.value}
-                    variant={activeTab === item.value ? "default" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab(item.value)}
-                  >
-                    {item.icon}
-                    <span className="ml-2">{item.label}</span>
-                  </Button>
-                ))}
-              </nav>
-              <div className="mt-auto pt-6 border-t">
+        </aside>
+
+        {/* Mobile menu button - shown on small screens */}
+        <div className="md:hidden fixed bottom-4 right-4 z-40">
+          <Button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+              >
+                <path
+                  d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                ></path>
+              </svg>
+            )}
+          </Button>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm">
+            <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white dark:bg-slate-900 shadow-xl p-6">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold">Admin Menu</h2>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
-                  onClick={handleLogout}
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  <LogOut className="h-5 w-5" />
-                  <span className="ml-2">Logout</span>
+                  <X className="h-5 w-5" />
                 </Button>
               </div>
-            </aside>
-            <main className="flex-1 p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="hidden">
-                  <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                  <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                  <TabsTrigger value="services">Services</TabsTrigger>
-                  <TabsTrigger value="barbers">Barbers</TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
-                </TabsList>
-  
-                <TabsContent value="dashboard" className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                  </div>
-                  <AdminStats />
-                  <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                    <div className="p-6 flex flex-col space-y-6">
-                      <h3 className="text-lg font-semibold">Recent Activity</h3>
-                      <div className="space-y-4">
-                        {bookings.slice(0, 5).map((booking) => (
-                          <div key={booking.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                            <div>
-                              <p className="font-medium">{booking.customer_name}</p>
-                              <p className="text-sm text-muted-foreground">Booked {booking.service.name} with {booking.barber.name}</p>
-                            </div>
-                            <span className="text-sm text-muted-foreground">{booking.date}, {booking.start_time}</span>
-                          </div>
-                        ))}
-                        {bookings.length === 0 && !isLoadingBookings && (
-                          <div className="text-center py-6 text-muted-foreground">
-                            No recent bookings found.
-                          </div>
-                        )}
-                        {isLoadingBookings && (
-                          <div className="text-center py-6 text-muted-foreground">
-                            Loading recent bookings...
-                          </div>
-                        )}
+              <nav className="space-y-4">
+                <Button
+                  variant={activeTab === "dashboard" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("dashboard");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant={activeTab === "services" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("services");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Scissors className="mr-2 h-5 w-5" />
+                  Services
+                </Button>
+                <Button
+                  variant={activeTab === "barbers" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("barbers");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Barbers
+                </Button>
+                <Button
+                  variant={activeTab === "bookings" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("bookings");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Calendar className="mr-2 h-5 w-5" />
+                  Bookings
+                </Button>
+                <Button
+                  variant={activeTab === "profile" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <User className="mr-2 h-5 w-5" />
+                  My Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-5 w-5" />
+                  Logout
+                </Button>
+              </nav>
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <main className="flex-1 md:ml-64 p-4 md:p-8 pt-[var(--navbar-height)]">
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              </div>
+              
+              <AdminStats />
+            </div>
+          )}
+          
+          {/* Services Tab */}
+          {activeTab === "services" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Services Management</h1>
+                <Button onClick={handleAddNewService}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Service
+                </Button>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Services</CardTitle>
+                  <CardDescription>Manage barbershop services, pricing, and availability.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingServices ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-  
-                <TabsContent value="bookings">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                    <h2 className="text-3xl font-bold tracking-tight">Bookings</h2>
-                    <div className="w-full sm:w-auto relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        placeholder="Search bookings..."
-                        className="pl-10 w-full sm:w-[300px]"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
+                  ) : services.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No services found. Add your first service to get started.</p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                      <label htmlFor="date-filter" className="text-sm font-medium leading-none">
-                        Filter by Date
-                      </label>
-                      <Input
-                        id="date-filter"
-                        type="date"
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                        className="mt-1"
-                      />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {services.map((service) => (
+                            <TableRow key={service.id}>
+                              <TableCell className="font-medium">{service.name}</TableCell>
+                              <TableCell>{service.description}</TableCell>
+                              <TableCell>${service.price.toFixed(2)}</TableCell>
+                              <TableCell>{service.duration} min</TableCell>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded-full text-xs ${service.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {service.active ? 'Active' : 'Inactive'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditService(service)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => {
+                                        setSelectedService(service);
+                                        setIsDeleteServiceDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                    <div>
-                      <label htmlFor="barber-filter" className="text-sm font-medium leading-none">
-                        Filter by Barber
-                      </label>
-                      <select
-                        id="barber-filter"
-                        value={barberFilter}
-                        onChange={(e) => setBarberFilter(e.target.value)}
-                        className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 mt-1"
-                      >
-                        <option value="">All Barbers</option>
-                        {barbers.map((barber) => (
-                          <option key={barber.id} value={barber.id}>{barber.name}</option>
-                        ))}
-                      </select>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Barbers Tab */}
+          {activeTab === "barbers" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Barbers Management</h1>
+                <Button onClick={handleAddNewBarber}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Barber
+                </Button>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Barbers</CardTitle>
+                  <CardDescription>Manage barber accounts and their information.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBarbers ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
+                      </div>
                     </div>
-                    <div>
-                      <label htmlFor="service-filter" className="text-sm font-medium leading-none">
-                        Filter by Service
-                      </label>
-                      <select
-                        id="service-filter"
-                        value={serviceFilter}
-                        onChange={(e) => setServiceFilter(e.target.value)}
-                        className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 mt-1"
-                      >
-                        <option value="">All Services</option>
-                        {services.map((service) => (
-                          <option key={service.id} value={service.id.toString()}>{service.name}</option>
-                        ))}
-                      </select>
+                  ) : barbers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No barbers found. Add your first barber to get started.</p>
                     </div>
-                  </div>
-                  <div className="rounded-lg border bg-card">
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Specialty</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {barbers.map((barber) => (
+                            <TableRow key={barber.id}>
+                              <TableCell className="font-medium">{barber.name}</TableCell>
+                              <TableCell>{barber.email}</TableCell>
+                              <TableCell>{barber.specialty || '-'}</TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditBarber(barber)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => {
+                                        setSelectedBarber(barber);
+                                        setIsDeleteBarberDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Bookings Tab */}
+          {activeTab === "bookings" && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold">Bookings Management</h1>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Search bookings..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="max-w-xs"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="date-filter" className="block text-sm font-medium mb-1">
+                    Filter by Date
+                  </label>
+                  <Input
+                    id="date-filter"
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="barber-filter" className="block text-sm font-medium mb-1">
+                    Filter by Barber
+                  </label>
+                  <select
+                    id="barber-filter"
+                    value={barberFilter}
+                    onChange={(e) => setBarberFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md"
+                  >
+                    <option value="">All Barbers</option>
+                    {barbers.map((barber) => (
+                      <option key={barber.id} value={barber.id}>
+                        {barber.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="service-filter" className="block text-sm font-medium mb-1">
+                    Filter by Service
+                  </label>
+                  <select
+                    id="service-filter"
+                    value={serviceFilter}
+                    onChange={(e) => setServiceFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md"
+                  >
+                    <option value="">All Services</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Bookings</CardTitle>
+                  <CardDescription>View and manage customer bookings.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBookings ? (
+                    <div className="flex justify-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                        <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
+                      </div>
+                    </div>
+                  ) : filteredBookings.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No bookings match your search criteria.</p>
+                    </div>
+                  ) : (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Customer</TableHead>
+                            <TableHead>Date & Time</TableHead>
                             <TableHead>Service</TableHead>
                             <TableHead>Barber</TableHead>
-                            <TableHead>Date & Time</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
@@ -731,20 +1000,28 @@ const AdminDashboard = () => {
                           {filteredBookings.map((booking) => (
                             <TableRow key={booking.id}>
                               <TableCell>
-                                <div className="font-medium">{booking.customer_name}</div>
-                                <div className="text-sm text-muted-foreground">{booking.customer_email}</div>
-                              </TableCell>
-                              <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
-                              <TableCell>{booking.barber?.name || "Unknown Barber"}</TableCell>
-                              <TableCell>
-                                {booking.date}, {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                                <div>
+                                  <p className="font-medium">{booking.customer_name}</p>
+                                  <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                                  ${booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                    booking.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                  }`}
+                                <div>
+                                  <p>{new Date(booking.date).toLocaleDateString()}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{booking.service.name}</TableCell>
+                              <TableCell>{booking.barber.name}</TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs 
+                                    ${booking.status === 'confirmed' && 'bg-blue-100 text-blue-800'}
+                                    ${booking.status === 'completed' && 'bg-green-100 text-green-800'}
+                                    ${booking.status === 'cancelled' && 'bg-red-100 text-red-800'}
+                                  `}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                                 </span>
@@ -757,505 +1034,363 @@ const AdminDashboard = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'confirmed' })} 
+                                    <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'confirmed' })}
                                       disabled={booking.status === 'confirmed'}
                                     >
-                                      Mark as Confirmed
+                                      Confirm
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
                                       disabled={booking.status === 'completed'}
                                     >
-                                      Mark as Completed
+                                      Complete
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={() => updateBookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
                                       disabled={booking.status === 'cancelled'}
+                                      className="text-red-600"
                                     >
-                                      Cancel Booking
+                                      Cancel
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </TableCell>
                             </TableRow>
                           ))}
-                          {filteredBookings.length === 0 && !isLoadingBookings && (
-                            <TableRow>
-                              <TableCell colSpan={6} className="h-24 text-center">
-                                No bookings found.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {isLoadingBookings && (
-                            <TableRow>
-                              <TableCell colSpan={6} className="h-24 text-center">
-                                Loading bookings...
-                              </TableCell>
-                            </TableRow>
-                          )}
                         </TableBody>
                       </Table>
                     </div>
-                  </div>
-                </TabsContent>
-  
-                <TabsContent value="services">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-3xl font-bold tracking-tight">Services</h2>
-                    <Button onClick={handleAddNewService}>
-                      <Plus className="mr-2 h-4 w-4" /> Add New Service
-                    </Button>
-                  </div>
-                  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    {services.map((service) => (
-                      <Card key={service.id} className={!service.active ? "opacity-70" : ""}>
-                        <CardHeader>
-                          <CardTitle className="flex items-center justify-between">
-                            <span>{service.name}</span>
-                            {!service.active && (
-                              <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                                Inactive
-                              </span>
-                            )}
-                          </CardTitle>
-                          <CardDescription>{service.description || "No description provided"}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between text-base font-medium">
-                            <span>Price:</span>
-                            <span>${service.price.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                            <span>Duration:</span>
-                            <span>{service.duration} minutes</span>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEditService(service)}>
-                            <Edit className="h-4 w-4 mr-1" /> Edit
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => {
-                            setSelectedService(service);
-                            setIsDeleteServiceDialogOpen(true);
-                          }}>
-                            <Trash className="h-4 w-4 mr-1" /> Delete
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                    {services.length === 0 && !isLoadingServices && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground">
-                        No services found. Click "Add New Service" to create one.
-                      </div>
-                    )}
-                    {isLoadingServices && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground">
-                        Loading services...
-                      </div>
-                    )}
-                  </div>
-  
-                  <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>{selectedService ? "Edit Service" : "Add New Service"}</DialogTitle>
-                        <DialogDescription>
-                          {selectedService 
-                            ? "Update the service details below." 
-                            : "Fill in the details to create a new service."}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Form {...serviceForm}>
-                        <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-4 py-4">
-                          <FormField
-                            control={serviceForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Name</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={serviceForm.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                              control={serviceForm.control}
-                              name="price"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Price ($)</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} type="number" min="0" step="0.01" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={serviceForm.control}
-                              name="duration"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Duration (min)</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} type="number" min="5" step="5" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <FormField
-                            control={serviceForm.control}
-                            name="active"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5">
-                                  <FormLabel>Active</FormLabel>
-                                  <FormDescription>
-                                    Make this service available for booking
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <input
-                                    type="checkbox"
-                                    checked={field.value}
-                                    onChange={field.onChange}
-                                    className="h-4 w-4 text-primary"
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                          <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsServiceDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button type="submit">
-                              {selectedService ? "Update Service" : "Create Service"}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
-  
-                  <AlertDialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the service "{selectedService?.name}". This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => selectedService && deleteServiceMutation.mutate(selectedService.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TabsContent>
-  
-                <TabsContent value="barbers">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-3xl font-bold tracking-tight">Barbers</h2>
-                    <Button onClick={handleAddNewBarber}>
-                      <Plus className="mr-2 h-4 w-4" /> Add New Barber
-                    </Button>
-                  </div>
-                  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    {barbers.map((barber) => (
-                      <Card key={barber.id}>
-                        <CardHeader>
-                          <CardTitle>{barber.name}</CardTitle>
-                          <CardDescription>{barber.email}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-sm">
-                            <span className="font-medium">Specialty: </span>
-                            <span>{barber.specialty || "Not specified"}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-2">
-                            <p>Since {new Date(barber.created_at).toLocaleDateString()}</p>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEditBarber(barber)}>
-                            <Edit className="h-4 w-4 mr-1" /> Edit
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => {
-                            setSelectedBarber(barber);
-                            setIsDeleteBarberDialogOpen(true);
-                          }}>
-                            <Trash className="h-4 w-4 mr-1" /> Delete
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                    {barbers.length === 0 && !isLoadingBarbers && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground">
-                        No barbers found. Click "Add New Barber" to create one.
-                      </div>
-                    )}
-                    {isLoadingBarbers && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground">
-                        Loading barbers...
-                      </div>
-                    )}
-                  </div>
-  
-                  <Dialog open={isBarberDialogOpen && !selectedBarber} onOpenChange={(open) => { if (!open) setIsBarberDialogOpen(false); }}>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Add New Barber</DialogTitle>
-                        <DialogDescription>
-                          Create a new barber account. This will also create a login for the barber.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Form {...barberForm}>
-                        <form onSubmit={barberForm.handleSubmit(onBarberSubmit)} className="space-y-4 py-4">
-                          <FormField
-                            control={barberForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Name</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={barberForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input {...field} type="email" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={barberForm.control}
-                            name="specialty"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Specialty (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={barberForm.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                  <Input {...field} type="password" />
-                                </FormControl>
-                                <FormDescription>The barber will use this password to log in</FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsBarberDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button type="submit">
-                              Create Barber
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
-  
-                  <Dialog open={isBarberDialogOpen && !!selectedBarber} onOpenChange={(open) => { if (!open) setIsBarberDialogOpen(false); }}>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Edit Barber</DialogTitle>
-                        <DialogDescription>
-                          Update the barber's information.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Form {...barberEditForm}>
-                        <form onSubmit={barberEditForm.handleSubmit(onBarberEditSubmit)} className="space-y-4 py-4">
-                          <FormField
-                            control={barberEditForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Name</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={barberEditForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input {...field} type="email" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={barberEditForm.control}
-                            name="specialty"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Specialty (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsBarberDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button type="submit">
-                              Update Barber
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
-  
-                  <AlertDialog open={isDeleteBarberDialogOpen} onOpenChange={setIsDeleteBarberDialogOpen}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the barber account for "{selectedBarber?.name}". This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => selectedBarber && deleteBarberMutation.mutate(selectedBarber.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TabsContent>
-  
-                <TabsContent value="settings">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
-                  </div>
-                  <Card className="mb-6">
-                    <CardHeader>
-                      <CardTitle>Personal Information</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {barberProfile ? (
-                        <div className="space-y-6">
-                          <div className="flex flex-col items-center mb-6">
-                            <ProfileImageUpload
-                              userId={barberProfile.id}
-                              currentImageUrl={barberProfile.image_url}
-                              userName={barberProfile.name}
-                              onImageUpdated={handleProfileImageUpdated}
-                              size="lg"
-                              allowUpload={true}
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="name">Full Name</Label>
-                              <Input id="name" value={barberProfile.name} readOnly />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="email">Email Address</Label>
-                              <Input id="email" type="email" value={barberProfile.email} readOnly />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="specialty">Specialty</Label>
-                              <Input id="specialty" value={barberProfile.specialty || 'Not specified'} readOnly />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="joined">Member Since</Label>
-                              <Input 
-                                id="joined" 
-                                value={format(new Date(barberProfile.created_at), 'MMMM d, yyyy')} 
-                                readOnly 
-                              />
-                            </div>
-                          </div>
-                          <div className="pt-4">
-                            <p className="text-sm text-muted-foreground">
-                              To update your profile information, please contact an administrator.
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-center text-muted-foreground py-4">Loading profile information...</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Change Password</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ChangePassword />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </main>
-          </div>
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-8">
+              <h1 className="text-2xl font-bold">My Profile</h1>
+              {userId && <ProfileSettings userId={userId} userRole="superadmin" />}
+            </div>
+          )}
+        </main>
       </div>
-    </>
+      
+      {/* Service Dialog */}
+      <Dialog
+        open={isServiceDialogOpen}
+        onOpenChange={setIsServiceDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>{selectedService ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+            <DialogDescription>
+              {selectedService 
+                ? 'Update the service details below.'
+                : 'Fill out the service details below.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...serviceForm}>
+            <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-4">
+              <FormField
+                control={serviceForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Classic Haircut" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={serviceForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter a brief description of the service"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={serviceForm.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price ($)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={serviceForm.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration (minutes)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={serviceForm.control}
+                name="active"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                    <FormLabel className="m-0">Active</FormLabel>
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsServiceDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {selectedService ? 'Save Changes' : 'Create Service'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Barber Dialog */}
+      <Dialog
+        open={isBarberDialogOpen}
+        onOpenChange={setIsBarberDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>{selectedBarber ? 'Edit Barber' : 'Add New Barber'}</DialogTitle>
+            <DialogDescription>
+              {selectedBarber 
+                ? 'Update the barber details below.'
+                : 'Fill out the barber details below to create an account.'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBarber ? (
+            <Form {...barberEditForm}>
+              <form onSubmit={barberEditForm.handleSubmit(onBarberEditSubmit)} className="space-y-4">
+                <FormField
+                  control={barberEditForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={barberEditForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="john@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={barberEditForm.control}
+                  name="specialty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specialty</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Classic Cuts, Beard Styling" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter className="pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsBarberDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          ) : (
+            <Form {...barberForm}>
+              <form onSubmit={barberForm.handleSubmit(onBarberSubmit)} className="space-y-4">
+                <FormField
+                  control={barberForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={barberForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="john@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={barberForm.control}
+                  name="specialty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specialty</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Classic Cuts, Beard Styling" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={barberForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        The barber will be able to change this after logging in.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter className="pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsBarberDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Create Barber Account
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Service Confirmation */}
+      <AlertDialog
+        open={isDeleteServiceDialogOpen}
+        onOpenChange={setIsDeleteServiceDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedService?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => selectedService && deleteServiceMutation.mutate(selectedService.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete Barber Confirmation */}
+      <AlertDialog
+        open={isDeleteBarberDialogOpen}
+        onOpenChange={setIsDeleteBarberDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Barber Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the account for "{selectedBarber?.name}"? This action cannot be undone. All associated data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => selectedBarber && deleteBarberMutation.mutate(selectedBarber.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 
