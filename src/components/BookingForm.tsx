@@ -141,34 +141,33 @@ const BookingForm = ({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Your Information</h3>
       
+      {/* Fix: Pass the form object directly to FormProvider */}
       <FormProvider {...form}>
-        <Form>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Customer Information Fields */}
-            <CustomerInfoFields />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Customer Information Fields */}
+          <CustomerInfoFields />
 
-            {/* Service Selection */}
-            <ServiceSelection services={services} />
-            
-            {/* Submit */}
-            <div className="pt-4">
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isSubmitting || !selectedBarber || !selectedDate || !selectedTime}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing
-                  </>
-                ) : (
-                  "Confirm Booking"
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          {/* Service Selection */}
+          <ServiceSelection services={services} />
+          
+          {/* Submit */}
+          <div className="pt-4">
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting || !selectedBarber || !selectedDate || !selectedTime}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing
+                </>
+              ) : (
+                "Confirm Booking"
+              )}
+            </Button>
+          </div>
+        </form>
       </FormProvider>
     </div>
   );
