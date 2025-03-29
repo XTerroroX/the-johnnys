@@ -123,7 +123,7 @@ const BookingForm = ({
 
       // Fix: Use the first chosen service's ID as service_id (required field)
       // Get the first chosen service ID or default to 1 if none available
-      const primaryServiceId = chosenServices.length > 0 ? chosenServices[0].id : 1;
+      const primaryServiceId = chosenServices.length > 0 ? parseInt(chosenServices[0].id.toString()) : 1;
       
       // Insert booking with multiple services in a JSON column
       const { data, error } = await supabase
