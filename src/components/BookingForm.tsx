@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,7 +48,7 @@ const BookingForm = ({
     queryFn: () => fetchServices(supabase)
   });
   
-  const form = useForm<FormValues>({
+  const methods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -127,7 +126,7 @@ const BookingForm = ({
       }
       
       toast.success("Booking confirmed! We'll see you soon.");
-      form.reset();
+      methods.reset();
       onCompleted();
     } catch (error: any) {
       console.error("Booking error:", error);
@@ -141,9 +140,8 @@ const BookingForm = ({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Your Information</h3>
       
-      {/* Fix: Pass the form object directly to FormProvider */}
-      <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
           {/* Customer Information Fields */}
           <CustomerInfoFields />
 

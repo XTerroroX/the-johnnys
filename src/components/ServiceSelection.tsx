@@ -1,7 +1,8 @@
 
-import { Controller, useFormContext } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { formatCurrency } from '@/utils/bookingUtils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Service {
   id: string;
@@ -19,7 +20,7 @@ const ServiceSelection = ({ services }: ServiceSelectionProps) => {
   
   // Calculate total price for the selected services in real-time
   const selectedServiceObjects = services.filter(svc => 
-    watch('selectedServices').includes(svc.id.toString())
+    watch('selectedServices')?.includes(svc.id.toString())
   );
   const totalPrice = selectedServiceObjects.reduce(
     (sum, svc) => sum + parseFloat(svc.price), 0
@@ -36,24 +37,21 @@ const ServiceSelection = ({ services }: ServiceSelectionProps) => {
             <div className="space-y-2">
               {services.map(service => (
                 <div key={service.id} className="flex items-center">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id={`svc-${service.id}`}
-                    value={service.id.toString()}
-                    // Check if the service ID is in the array
-                    checked={field.value.includes(service.id.toString())}
-                    onChange={(e) => {
-                      if (e.target.checked) {
+                    checked={field.value?.includes(service.id.toString())}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
                         // add
-                        field.onChange([...field.value, service.id.toString()]);
+                        field.onChange([...(field.value || []), service.id.toString()]);
                       } else {
                         // remove
-                        field.onChange(field.value.filter((val: string) => val !== service.id.toString()));
+                        field.onChange(field.value?.filter((val: string) => val !== service.id.toString()) || []);
                       }
                     }}
                     className="mr-2"
                   />
-                  <label htmlFor={`svc-${service.id}`}>
+                  <label htmlFor={`svc-${service.id}`} className="text-sm cursor-pointer">
                     {service.name} - {formatCurrency(parseFloat(service.price))} ({service.duration} min)
                   </label>
                 </div>
