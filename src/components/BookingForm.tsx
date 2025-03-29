@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -119,6 +120,10 @@ const BookingForm = ({
       endH += Math.floor(endM / 60);
       endM = endM % 60;
       const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
+      // Fix: Use the first chosen service's ID as service_id (required field)
+      // Get the first chosen service ID or default to 1 if none available
+      const primaryServiceId = chosenServices.length > 0 ? chosenServices[0].id : 1;
       
       // Insert booking with multiple services in a JSON column
       const { data, error } = await supabase
@@ -132,7 +137,8 @@ const BookingForm = ({
             price: svc.price,
             duration: svc.duration
           })),
-          // Optionally store total price, totalDuration, or a single "service_id" if needed
+          // Fix: Add the required service_id field
+          service_id: primaryServiceId,
           date: formattedDate,
           start_time: time24h,
           end_time: endTime,
@@ -254,7 +260,7 @@ const BookingForm = ({
                       <input
                         type="checkbox"
                         id={`svc-${service.id}`}
-                        value={service.id}
+                        value={service.id.toString()}
                         // Check if the service ID is in the array
                         checked={field.value.includes(service.id.toString())}
                         onChange={(e) => {
