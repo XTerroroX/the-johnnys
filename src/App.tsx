@@ -21,13 +21,21 @@ if (!window.structuredClone) {
   };
 }
 
+// Create a client with improved error handling and retry settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Add some retry logic and staleTime to improve cache handling
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false, // Prevent unnecessary refetches in Safari
+      retry: (failureCount, error) => {
+        // Don't retry on 404s or other client errors
+        if (error instanceof Error && 'status' in error && (error as any).status < 500) {
+          return false;
+        }
+        // Retry other errors up to 2 times
+        return failureCount < 2;
+      },
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false, // Prevent unnecessary refetches
+      refetchOnReconnect: true,
     },
   },
 });

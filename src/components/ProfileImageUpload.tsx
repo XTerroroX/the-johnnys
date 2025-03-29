@@ -53,26 +53,20 @@ const ProfileImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Get the file MIME type
-      const fileType = file.type;
-      
-      // Check if it's an image file
-      if (!fileType.startsWith('image/')) {
-        throw new Error('Only image files are allowed');
-      }
-
       // Create a unique file path with user ID
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
+      // Use the correct MIME type from the file object
+      const fileOptions = {
+        upsert: true,
+        contentType: file.type // This ensures the correct MIME type is used
+      };
+
       // Upload to Supabase Storage with the correct content type
-      // Fix: Use the correct options with contentType explicitly set
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('barber_profiles')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: fileType // Explicitly use the file's MIME type
-        });
+        .upload(filePath, file, fileOptions);
         
       if (uploadError) throw uploadError;
 

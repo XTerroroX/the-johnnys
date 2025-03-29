@@ -1,78 +1,80 @@
 
 import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormControl, 
+  FormMessage 
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const CustomerInfoFields = () => {
   const { control } = useFormContext();
-
+  
   return (
-    <>
-      {/* Name */}
+    <div className="space-y-4">
       <FormField
         control={control}
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Full Name</FormLabel>
+            <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input placeholder="John Doe" {...field} />
+              <Input placeholder="Your full name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-
-      {/* Email & Phone */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="john@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="(555) 123-4567" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      {/* Notes */}
+      
+      <FormField
+        control={control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input placeholder="Your email address" type="email" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={control}
+        name="phone"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Phone Number</FormLabel>
+            <FormControl>
+              <Input placeholder="Your phone number" type="tel" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
       <FormField
         control={control}
         name="notes"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Special Requests</FormLabel>
+            <FormLabel>Special Requests (Optional)</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Any special requests or notes for your barber..."
-                {...field}
+                placeholder="Any special requests or notes for your appointment" 
+                className="resize-none" 
+                {...field} 
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 };
 

@@ -21,7 +21,6 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
-  // Instead of single "service", store an array of service IDs
   selectedServices: z.array(z.string()).nonempty("Please select at least one service."),
   notes: z.string().optional(),
 });
@@ -43,7 +42,7 @@ const BookingForm = ({
 }: BookingFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['services'],
     queryFn: () => fetchServices(supabase)
   });
@@ -135,6 +134,14 @@ const BookingForm = ({
       setIsSubmitting(false);
     }
   };
+
+  if (isLoadingServices) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

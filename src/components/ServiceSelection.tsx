@@ -1,5 +1,5 @@
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { formatCurrency } from '@/utils/bookingUtils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,8 +19,9 @@ const ServiceSelection = ({ services }: ServiceSelectionProps) => {
   const { control, watch } = useFormContext();
   
   // Calculate total price for the selected services in real-time
+  const selectedServiceIds = watch('selectedServices') || [];
   const selectedServiceObjects = services.filter(svc => 
-    watch('selectedServices')?.includes(svc.id.toString())
+    selectedServiceIds.includes(svc.id.toString())
   );
   const totalPrice = selectedServiceObjects.reduce(
     (sum, svc) => sum + parseFloat(svc.price), 0

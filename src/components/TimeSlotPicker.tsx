@@ -1,3 +1,4 @@
+
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface TimeSlotPickerProps {
   selectedDate: Date | undefined;
@@ -52,24 +54,25 @@ const TimeSlotPicker = ({
   
   // Fetch barber availability based on day of week
   const fetchBarberAvailability = async () => {
-  if (!selectedBarber || !selectedDate) return null;
+    if (!selectedBarber || !selectedDate) return null;
 
-  const dayOfWeek = selectedDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    const dayOfWeek = selectedDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
 
-  const { data, error } = await supabase
-    .from('barber_availability')
-    .select('*')
-    .eq('barber_id', selectedBarber)
-    .eq('day_of_week', dayOfWeek)
-    .single();
+    const { data, error } = await supabase
+      .from('barber_availability')
+      .select('*')
+      .eq('barber_id', selectedBarber)
+      .eq('day_of_week', dayOfWeek)
+      .single();
 
-  if (error || !data) {
-    // If no record is found (e.g. superadmin), assume default availability.
-    return { is_available: true, start_time: '09:00:00', end_time: '17:00:00' };
-  }
+    if (error) {
+      console.log("Availability fetch error or no record found:", error);
+      // If no record is found (e.g. superadmin), assume default availability.
+      return { is_available: true, start_time: '09:00:00', end_time: '17:00:00' };
+    }
 
-  return data;
-};
+    return data;
+  };
   
   // Fetch existing bookings for the selected date and barber
   const fetchExistingBookings = async () => {
@@ -205,7 +208,8 @@ const TimeSlotPicker = ({
   
   if (isLoadingAvailability || isLoadingBookings) {
     return (
-      <div className="text-center py-6 border border-dashed rounded-md border-slate-200 dark:border-slate-700">
+      <div className="flex justify-center items-center py-6 border border-dashed rounded-md border-slate-200 dark:border-slate-700">
+        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
         <p className="text-muted-foreground">Loading available time slots...</p>
       </div>
     );
