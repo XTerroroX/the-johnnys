@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -114,7 +113,7 @@ const BarberDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['barberBookings'] });
       toast.success("Booking status updated");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Error updating booking status: ${error.message}`);
     }
   });
@@ -506,7 +505,7 @@ const BarberDashboard = () => {
           {activeTab === "profile" && (
             <div className="space-y-8">
               <h1 className="text-2xl font-bold">My Profile</h1>
-              {userId && <ProfileSettings userId={userId} userRole="barber" />}
+              <ProfileSettings userId={userId} userRole="barber" />
             </div>
           )}
         </main>

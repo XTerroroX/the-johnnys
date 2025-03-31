@@ -1,4 +1,3 @@
-
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -7,6 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+
+// Move these constants outside the component so they're not recreated on every render.
+const MORNING_SLOTS = ['9:00 AM', '10:00 AM', '11:00 AM'];
+const AFTERNOON_SLOTS = ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'];
+const EVENING_SLOTS = ['5:00 PM', '6:00 PM', '7:00 PM'];
 
 interface TimeSlotPickerProps {
   selectedDate: Date | undefined;
@@ -26,16 +30,11 @@ const TimeSlotPicker = ({
   onSelectTime,
   selectedBarber
 }: TimeSlotPickerProps) => {
-  // Base time slots in 12-hour format
-  const morningSlots = ['9:00 AM', '10:00 AM', '11:00 AM'];
-  const afternoonSlots = ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'];
-  const eveningSlots = ['5:00 PM', '6:00 PM', '7:00 PM'];
-  
   // State to hold available slots after checking against existing bookings
   const [availableSlots, setAvailableSlots] = useState<Record<string, BookingSlot[]>>({
-    morning: morningSlots.map(time => ({ time, isAvailable: true })),
-    afternoon: afternoonSlots.map(time => ({ time, isAvailable: true })),
-    evening: eveningSlots.map(time => ({ time, isAvailable: true }))
+    morning: MORNING_SLOTS.map(time => ({ time, isAvailable: true })),
+    afternoon: AFTERNOON_SLOTS.map(time => ({ time, isAvailable: true })),
+    evening: EVENING_SLOTS.map(time => ({ time, isAvailable: true }))
   });
   
   // Updated conversion function that returns time in "HH:MM:SS" format
@@ -111,15 +110,16 @@ const TimeSlotPicker = ({
   
   // Update available slots based on fetched data
   useEffect(() => {
+    // Only run if we have a selectedDate and a selectedBarber.
     if (!selectedDate || !selectedBarber) return;
     
     // First check if the barber is available on this day at all
     if (availabilityData && !availabilityData.is_available) {
       // Barber is not available on this day
       const allUnavailable = {
-        morning: morningSlots.map(time => ({ time, isAvailable: false })),
-        afternoon: afternoonSlots.map(time => ({ time, isAvailable: false })),
-        evening: eveningSlots.map(time => ({ time, isAvailable: false }))
+        morning: MORNING_SLOTS.map(time => ({ time, isAvailable: false })),
+        afternoon: AFTERNOON_SLOTS.map(time => ({ time, isAvailable: false })),
+        evening: EVENING_SLOTS.map(time => ({ time, isAvailable: false }))
       };
       setAvailableSlots(allUnavailable);
       if (selectedTime) {
@@ -134,9 +134,9 @@ const TimeSlotPicker = ({
     const availableHoursEnd = availabilityData?.end_time || '17:00:00';
     
     // Start with all slots available
-    const updatedMorningSlots = morningSlots.map(time => ({ time, isAvailable: true }));
-    const updatedAfternoonSlots = afternoonSlots.map(time => ({ time, isAvailable: true }));
-    const updatedEveningSlots = eveningSlots.map(time => ({ time, isAvailable: true }));
+    const updatedMorningSlots = MORNING_SLOTS.map(time => ({ time, isAvailable: true }));
+    const updatedAfternoonSlots = AFTERNOON_SLOTS.map(time => ({ time, isAvailable: true }));
+    const updatedEveningSlots = EVENING_SLOTS.map(time => ({ time, isAvailable: true }));
     
     // Create a combined list to update based on working hours and existing bookings
     const allSlots = [...updatedMorningSlots, ...updatedAfternoonSlots, ...updatedEveningSlots];
@@ -162,21 +162,21 @@ const TimeSlotPicker = ({
     
     // Update state with new availability; group them by period for rendering
     setAvailableSlots({
-      morning: allSlots.filter(slot => morningSlots.includes(slot.time)),
-      afternoon: allSlots.filter(slot => afternoonSlots.includes(slot.time)),
-      evening: allSlots.filter(slot => eveningSlots.includes(slot.time))
+      morning: allSlots.filter(slot => MORNING_SLOTS.includes(slot.time)),
+      afternoon: allSlots.filter(slot => AFTERNOON_SLOTS.includes(slot.time)),
+      evening: allSlots.filter(slot => EVENING_SLOTS.includes(slot.time))
     });
     
     // If the currently selected time is now unavailable, reset it
     if (selectedTime) {
-      const flatSlots = [...allSlots];
-      const currentSlot = flatSlots.find(slot => slot.time === selectedTime);
+      const currentSlot = allSlots.find(slot => slot.time === selectedTime);
       if (currentSlot && !currentSlot.isAvailable) {
         onSelectTime('');
         toast.warning("Your selected time is no longer available. Please select another time.");
       }
     }
-  }, [selectedDate, selectedBarber, availabilityData, bookingsData, selectedTime, morningSlots, afternoonSlots, eveningSlots, onSelectTime]);
+  // Remove morningSlots, afternoonSlots, and eveningSlots from the dependency array
+  }, [selectedDate, selectedBarber, availabilityData, bookingsData, selectedTime, onSelectTime]);
   
   const handleSelectTime = (time: string) => {
     onSelectTime(time);
@@ -234,7 +234,7 @@ const TimeSlotPicker = ({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">
-        Select a Time - {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}
+        Select a Time - {format(selectedDate, 'MMMM d, yyyy')}
       </h3>
       
       <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md">

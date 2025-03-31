@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -67,8 +66,7 @@ const BookingForm = ({
     setIsSubmitting(true);
     
     try {
-      // We'll build a detailed list of selected service objects 
-      // to store in the new 'selected_services' JSON column
+      // Build a detailed list of selected service objects to store in the new 'selected_services' JSON column
       const chosenServices = services.filter(svc =>
         values.selectedServices.includes(svc.id.toString())
       );
@@ -95,7 +93,7 @@ const BookingForm = ({
       const primaryServiceId = chosenServices.length > 0 ? parseInt(chosenServices[0].id.toString()) : 1;
       
       // Insert booking with multiple services in a JSON column
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('bookings')
         .insert({
           barber_id: selectedBarber,

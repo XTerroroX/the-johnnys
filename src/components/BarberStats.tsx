@@ -46,7 +46,7 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
       // Fetch monthly bookings for this barber with joined services data (price & duration)
       const { data: monthlyBookings, error: monthlyError } = await supabase
         .from('bookings')
-        .select(`customer_email, start_time, end_time, services(price,duration)`)
+        .select('customer_email, start_time, end_time, services(price,duration)')
         .eq('barber_id', barberId)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
@@ -63,14 +63,18 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
 
       bookings.forEach((booking: any) => {
         // Sum revenue from the joined services.price (if available)
-        const price = booking?.services?.price ? parseFloat(booking.services.price) : 0;
+        const servicePrice = booking?.services?.price;
+        const price = servicePrice ? parseFloat(servicePrice) : 0;
         totalRevenue += price;
+
         if (booking.customer_email) {
           clientSet.add(booking.customer_email);
         }
+
         // Use joined services.duration if available; else calculate from start_time/end_time
-        if (booking?.services?.duration) {
-          totalServiceTime += parseInt(booking.services.duration, 10);
+        const serviceDuration = booking?.services?.duration;
+        if (serviceDuration) {
+          totalServiceTime += parseInt(serviceDuration, 10);
           serviceCount++;
         } else if (booking.start_time && booking.end_time) {
           const parseTime = (timeStr: string) => {
@@ -90,21 +94,6 @@ const BarberStats = ({ barberId }: BarberStatsProps) => {
       const avgServiceTime = serviceCount > 0 ? (totalServiceTime / serviceCount).toFixed(1) : '0';
       const earningsFormatted = `$${totalRevenue.toFixed(2)}`;
       const clientsServed = clientSet.size;
-
-      // Fetch upcoming appointments for the next 7 days
-      const nowISOString = now.toISOString();
-      const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: upcomingBookings, error: upcomingError } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('barber_id', barberId)
-        .gte('date', nowISOString)
-        .lte('date', endOfWeek);
-
-      if (upcomingError) {
-        console.error('Error fetching upcoming bookings:', upcomingError);
-      }
-      const appointmentsCount = upcomingBookings ? upcomingBookings.length : 0;
 
       // Build the stats array
       const newStats = [

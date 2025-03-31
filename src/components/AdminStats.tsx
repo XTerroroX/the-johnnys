@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Calendar, DollarSign, Users } from 'lucide-react';
-import { format } from 'date-fns';
 
 const StatCard = ({
   icon,
