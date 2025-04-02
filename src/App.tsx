@@ -17,7 +17,12 @@ import NotFound from "./pages/NotFound";
 // Safari polyfill for structured clone algorithm
 if (!window.structuredClone) {
   window.structuredClone = (obj) => {
-    return JSON.parse(JSON.stringify(obj));
+    // Use a safer approach than JSON.parse/stringify which can lose data
+    return new Promise(resolve => {
+      const { port1, port2 } = new MessageChannel();
+      port2.onmessage = ev => resolve(ev.data);
+      port1.postMessage(obj);
+    });
   };
 }
 
@@ -40,26 +45,29 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
-          <Route path="/TermsOfService" element={<TermsOfService />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/barber-dashboard" element={<BarberDashboard />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+// Use a function component instead of an arrow function to prevent deoptimization
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/booking" element={<Booking />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+            <Route path="/TermsOfService" element={<TermsOfService />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/barber-dashboard" element={<BarberDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
