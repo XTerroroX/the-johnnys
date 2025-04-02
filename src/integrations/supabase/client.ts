@@ -31,7 +31,7 @@ export const supabase = createClient<Database>(
 
 // Add a listener for auth state changes to properly handle session issues
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+  if (event === 'SIGNED_OUT') {
     // Clear local storage to prevent stale data
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith('supabase.auth')) {

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,13 +15,10 @@ import NotFound from "./pages/NotFound";
 
 // Safari polyfill for structured clone algorithm
 if (!window.structuredClone) {
-  window.structuredClone = (obj) => {
-    // Use a safer approach than JSON.parse/stringify which can lose data
-    return new Promise(resolve => {
-      const { port1, port2 } = new MessageChannel();
-      port2.onmessage = ev => resolve(ev.data);
-      port1.postMessage(obj);
-    });
+  window.structuredClone = function(obj) {
+    // Use a safer synchronous approach with JSON for basic cloning
+    if (typeof obj === 'undefined' || obj === null) return obj;
+    return JSON.parse(JSON.stringify(obj));
   };
 }
 
