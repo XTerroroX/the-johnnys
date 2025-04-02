@@ -6,7 +6,7 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://jqnzvaifxdrwvaxfxlzm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxbnp2YWlmeGRyd3ZheGZ4bHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMTM2MjAsImV4cCI6MjA1ODU4OTYyMH0.mzZ_ZYAnSTMz74R49WmzPiLaFS0xsuTA-FBjdQzQBP4";
 
-// Create a function with proper error handling to prevent crashes
+// Create a client with improved session handling
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -14,7 +14,8 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false // Prevent infinite redirects
+      detectSessionInUrl: false, // Prevent infinite redirects
+      storageKey: 'supabase.auth.token', // Consistent storage key
     },
     global: {
       headers: {

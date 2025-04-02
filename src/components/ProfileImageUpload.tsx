@@ -57,13 +57,12 @@ const ProfileImageUpload = ({
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
-      // IMPORTANT FIX: Correctly set contentType from the file object and use contentType parameter
-      // instead of the incorrect fileOptions object structure
+      // Fixed upload method with proper parameters
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('barber_profiles')
         .upload(filePath, file, {
+          cacheControl: '3600',
           upsert: true,
-          contentType: file.type // This ensures the correct MIME type is used
         });
         
       if (uploadError) throw uploadError;
@@ -76,7 +75,7 @@ const ProfileImageUpload = ({
         .getPublicUrl(uploadData.path);
 
       let publicUrl = publicUrlData.publicUrl;
-      // Append cache-buster
+      // Append cache-buster to force refresh of the image
       publicUrl += `?cb=${Date.now()}`;
       console.log("Final Public URL:", publicUrl);
 
