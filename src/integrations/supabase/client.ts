@@ -32,12 +32,21 @@ export const supabase = createClient<Database>(
 
 // Add a listener for auth state changes to properly handle session issues
 supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', event);
+  
+  // Clear stale session data when signing out
   if (event === 'SIGNED_OUT') {
     // Clear local storage to prevent stale data
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith('supabase.auth')) {
         localStorage.removeItem(key);
       }
+    }
+    
+    // Force clear any cached queries
+    if (window.location.pathname !== '/login') {
+      // Redirect to login page if not already there
+      window.location.href = '/login';
     }
   }
 });

@@ -14,7 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
 import NotFound from "./pages/NotFound";
 
-// Safari polyfill for structured clone algorithm
+// Safari polyfill for structured clone algorithm - use synchronous implementation
 if (!window.structuredClone) {
   window.structuredClone = (obj) => {
     return JSON.parse(JSON.stringify(obj));
@@ -33,9 +33,10 @@ const queryClient = new QueryClient({
         // Retry other errors up to 2 times
         return failureCount < 2;
       },
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false, // Prevent unnecessary refetches
+      staleTime: 60 * 1000, // 1 minute instead of 5 to ensure profile data is fresher
+      refetchOnWindowFocus: true, // Enable this to help with refresh issues
       refetchOnReconnect: true,
+      refetchOnMount: true, // Always refetch on component mount
     },
   },
 });

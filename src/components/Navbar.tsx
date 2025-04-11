@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import BarberNotifications from '@/components/BarberNotifications';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,10 +15,43 @@ const Navbar = () => {
   const location = useLocation();
   const [isBarberOrAdmin, setIsBarberOrAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [profileData, setProfileData] = useState<any>(null);
-
+  
   // Determine if we're on a portal page by checking if the pathname contains "dashboard"
   const isPortal = location.pathname.includes('dashboard');
+
+  // Use React Query to fetch profile data
+  const { data: profileData, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!user?.id, // Only run query if we have a user ID
+    staleTime: 60 * 1000, // 1 minute
+    retry: 3,
+  });
+  
+  useEffect(() => {
+    if (profileData) {
+      if (profileData.role === 'barber' || profileData.role === 'superadmin') {
+        setIsBarberOrAdmin(true);
+      } else {
+        setIsBarberOrAdmin(false);
+      }
+    }
+  }, [profileData]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,47 +62,31 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const checkUser = async () => {
+    // First check for existing session
+    const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        console.log('Session found on mount:', session.user.id);
         setUser(session.user);
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (data) {
-          setProfileData(data);
-          if (data.role === 'barber' || data.role === 'superadmin') {
-            setIsBarberOrAdmin(true);
-          }
-        }
       }
     };
-    checkUser();
-
+    
+    checkSession();
+    
+    // Then set up listener for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+      (event, session) => {
+        console.log('Auth state changed in Navbar:', event);
+        
+        if (session?.user) {
           setUser(session.user);
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          if (data) {
-            setProfileData(data);
-            if (data.role === 'barber' || data.role === 'superadmin') {
-              setIsBarberOrAdmin(true);
-            }
-          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setIsBarberOrAdmin(false);
-          setProfileData(null);
         }
       }
     );
+    
     return () => {
       subscription.unsubscribe();
     };
@@ -75,7 +94,9 @@ const Navbar = () => {
 
   const getInitials = (name: string) => {
     if (!name) return 'U';
-    return name.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2);
+    const parts = name.split(' ');
+    if (parts.length === 0) return 'U';
+    return parts.map(part => part[0]).join('').toUpperCase().substring(0, 2);
   };
 
   const navigationItems = [
@@ -125,10 +146,17 @@ const Navbar = () => {
                 )}
                 <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8 border border-primary/20">
-                    <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
-                    <AvatarFallback>{getInitials(profileData?.name || '')}</AvatarFallback>
+                    <AvatarImage 
+                      src={profileData?.image_url} 
+                      alt={profileData?.name || ''} 
+                    />
+                    <AvatarFallback>
+                      {isProfileLoading ? '...' : getInitials(profileData?.name || 'User')}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">{profileData?.name}</span>
+                  <span className="text-sm font-medium">
+                    {isProfileLoading ? 'Loading...' : (profileData?.name || 'User')}
+                  </span>
                 </div>
               </>
             ) : (
@@ -182,9 +210,13 @@ const Navbar = () => {
                   <div className="flex items-center space-x-2">
                     <Avatar className="h-8 w-8 border border-primary/20">
                       <AvatarImage src={profileData?.image_url} alt={profileData?.name || ''} />
-                      <AvatarFallback>{getInitials(profileData?.name || '')}</AvatarFallback>
+                      <AvatarFallback>
+                        {isProfileLoading ? '...' : getInitials(profileData?.name || 'User')}
+                      </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{profileData?.name || 'User'}</span>
+                    <span className="font-medium">
+                      {isProfileLoading ? 'Loading...' : (profileData?.name || 'User')}
+                    </span>
                   </div>
                 </>
               ) : (

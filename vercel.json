@@ -18,6 +18,10 @@
         {
           "key": "Pragma",
           "value": "no-cache"
+        },
+        {
+          "key": "Vary", 
+          "value": "Accept-Encoding, Cookie"
         }
       ]
     },
@@ -36,6 +40,15 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
         }
       ]
     }
