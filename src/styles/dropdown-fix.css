@@ -1,0 +1,34 @@
+
+/* Enhanced styles for dropdown menus to work better on mobile */
+.radix-dropdown-content {
+  z-index: 50 !important;
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Increase tap target size on mobile */
+[data-radix-dropdown-menu-content] [role="menuitem"] {
+  padding: 10px 16px !important;
+  touch-action: manipulation !important;
+}
+
+/* Fix for iOS/Safari touch events */
+.touch-manipulation {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Ensure dropdown content appears over other elements */
+[data-state="open"] > [data-radix-dropdown-menu-content] {
+  animation: fadeIn 0.1s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

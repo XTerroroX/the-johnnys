@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Booking from "./pages/Booking";
@@ -41,23 +42,42 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to handle route changes and clear stale data
+const RouteChangeHandler = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // When route changes, invalidate relevant queries to ensure fresh data
+    if (location.pathname === '/booking') {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['barbers'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['availableTimes'] });
+    }
+  }, [location.pathname]);
+  
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
-          <Route path="/TermsOfService" element={<TermsOfService />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/barber-dashboard" element={<BarberDashboard />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <RouteChangeHandler>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/booking" element={<Booking />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+            <Route path="/TermsOfService" element={<TermsOfService />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/barber-dashboard" element={<BarberDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </RouteChangeHandler>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
