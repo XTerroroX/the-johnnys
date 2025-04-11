@@ -98,11 +98,11 @@ const AdminStats: React.FC<StatsProps> = ({ period = 'month' }) => {
       if (booking.selected_services && Array.isArray(booking.selected_services) && booking.selected_services.length > 0) {
         // Sum up prices from all selected services
         booking.selected_services.forEach((serviceItem: any) => {
-          totalRevenue += parseFloat(serviceItem.price || '0');
+          totalRevenue += parseFloat(String(serviceItem.price || '0'));
         });
       } else if (booking.service && booking.service.price) {
         // Fallback to single service if selected_services is not available
-        totalRevenue += parseFloat(booking.service.price || '0');
+        totalRevenue += parseFloat(String(booking.service.price || '0'));
       }
     });
     
