@@ -3,41 +3,23 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        },
-        {
-          "key": "Surrogate-Control",
-          "value": "public, max-age=3600"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/static/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/_next/image(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ]
-}
+ "headers": [
+  {
+    "source": "/(.*)",
+    "headers": [
+      {
+        "key": "Cache-Control",
+        "value": "no-cache, no-store, must-revalidate"
+      }
+    ]
+  },
+  {
+    "source": "/static/(.*)",
+    "headers": [
+      {
+        "key": "Cache-Control",
+        "value": "public, max-age=31536000, immutable"
+      }
+    ]
+  }
+]
