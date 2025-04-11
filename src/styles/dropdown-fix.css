@@ -1,7 +1,7 @@
 
 /* Enhanced styles for dropdown menus to work better on mobile */
 .radix-dropdown-content {
-  z-index: 50 !important;
+  z-index: 100 !important;
   background-color: var(--background) !important;
   border: 1px solid var(--border) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
@@ -11,24 +11,50 @@
 [data-radix-dropdown-menu-content] [role="menuitem"] {
   padding: 10px 16px !important;
   touch-action: manipulation !important;
+  min-height: 44px !important; /* Apple recommended minimum tap target */
 }
 
 /* Fix for iOS/Safari touch events */
 .touch-manipulation {
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
+  cursor: pointer !important;
 }
 
 /* Ensure dropdown content appears over other elements */
 [data-state="open"] > [data-radix-dropdown-menu-content] {
   animation: fadeIn 0.1s ease-out;
+  z-index: 100 !important;
+  position: relative;
 }
 
+/* Animation for dropdown appearance */
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(-5px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fix for Safari dynamic content height issues */
+[data-radix-dropdown-menu-content] {
+  overflow: visible;
+  height: auto !important; 
+  max-height: 90vh;
+}
+
+/* Add visible feedback for touch actions on mobile */
+@media (max-width: 768px) {
+  [data-radix-dropdown-menu-content] [role="menuitem"]:active {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  [role="button"],
+  button {
+    touch-action: manipulation;
   }
 }
