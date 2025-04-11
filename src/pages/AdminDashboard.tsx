@@ -534,20 +534,17 @@ const AdminDashboard = () => {
     if (bookingsError) toast.error("Error loading bookings: " + (bookingsError as Error).message);
   }, [servicesError, barbersError, bookingsError]);
   
-  // Skip rendering until we have authenticated the user
   if (!userId) {
     return null;
   }
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Fixed Navbar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <Navbar />
       </div>
       
       <div className="flex h-screen pt-[var(--navbar-height)]">
-        {/* Sidebar */}
         <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-30 pt-[var(--navbar-height)] bg-sidebar-background border-r border-sidebar-border">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <nav className="mt-5 flex-1 px-3 space-y-1">
@@ -603,7 +600,6 @@ const AdminDashboard = () => {
           </div>
         </aside>
 
-        {/* Mobile menu button - shown on small screens */}
         <div className="md:hidden fixed bottom-4 right-4 z-40">
           <Button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -632,7 +628,6 @@ const AdminDashboard = () => {
           </Button>
         </div>
 
-        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm">
             <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white dark:bg-slate-900 shadow-xl p-6">
@@ -715,9 +710,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Main content */}
         <main className="flex-1 md:ml-64 p-4 md:p-8 pt-[var(--navbar-height)]">
-          {/* Dashboard Tab */}
           {activeTab === "dashboard" && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -728,7 +721,6 @@ const AdminDashboard = () => {
             </div>
           )}
           
-          {/* Services Tab */}
           {activeTab === "services" && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -830,7 +822,6 @@ const AdminDashboard = () => {
             </div>
           )}
           
-          {/* Barbers Tab */}
           {activeTab === "barbers" && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -879,3 +870,242 @@ const AdminDashboard = () => {
                               
                               <TableCell className="text-right">
                                 <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="touch-manipulation focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-95 transition-transform"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Open menu</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent 
+                                    align="end"
+                                    className="w-[200px] z-50 bg-white dark:bg-slate-950 border border-slate-200"
+                                  >
+                                    <DropdownMenuItem 
+                                      className="cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
+                                      onClick={() => handleEditBarber(barber)}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600 cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
+                                      onClick={() => {
+                                        setSelectedBarber(barber);
+                                        setIsDeleteBarberDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </main>
+      </div>
+      
+      <div className="fixed bottom-4 right-4 z-40">
+        <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
+          <DialogContent>
+            <AlertDialog>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this service?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsDeleteServiceDialogOpen(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteServiceMutation.mutate(selectedService?.id)}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialog>
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isDeleteBarberDialogOpen} onOpenChange={setIsDeleteBarberDialogOpen}>
+          <DialogContent>
+            <AlertDialog>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this barber?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsDeleteBarberDialogOpen(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteBarberMutation.mutate(selectedBarber?.id)}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialog>
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+          <DialogContent>
+            <Form {...serviceForm}>
+              <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)}>
+                <FormField
+                  control={serviceForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the name of the service.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={serviceForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter a description of the service.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={serviceForm.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the price of the service.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={serviceForm.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the duration of the service in minutes.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end mt-4">
+                  <Button type="submit">Save</Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isBarberDialogOpen} onOpenChange={setIsBarberDialogOpen}>
+          <DialogContent>
+            <Form {...barberForm}>
+              <form onSubmit={barberForm.handleSubmit(onBarberSubmit)}>
+                <FormField
+                  control={barberForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the name of the barber.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={barberForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the email of the barber.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={barberForm.control}
+                  name="specialty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specialty</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the specialty of the barber.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={barberForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the password for the barber account.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end mt-4">
+                  <Button type="submit">Save</Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
