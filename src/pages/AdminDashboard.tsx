@@ -200,8 +200,14 @@ const AdminDashboard = () => {
         .from('services')
         .select('*')
         .order('name');
-      if (error) throw error;
-      return data as Service[];
+      
+      if (error) {
+        console.error("Error fetching services:", error);
+        throw error;
+      }
+      
+      console.log("Fetched services:", data);
+      return data || [];
     }
   });
   
@@ -217,8 +223,14 @@ const AdminDashboard = () => {
         .select('*')
         .eq('role', 'barber')
         .order('name');
-      if (error) throw error;
-      return data as Barber[];
+      
+      if (error) {
+        console.error("Error fetching barbers:", error);
+        throw error;
+      }
+      
+      console.log("Fetched barbers:", data);
+      return data || [];
     }
   });
   
@@ -530,7 +542,10 @@ const AdminDashboard = () => {
   
   useEffect(() => {
     if (servicesError) toast.error("Error loading services: " + (servicesError as Error).message);
-    if (barbersError) toast.error("Error loading barbers: " + (barbersError as Error).message);
+    if (barbersError) {
+      console.error("Barbers error details:", barbersError);
+      toast.error("Error loading barbers: " + (barbersError as Error).message);
+    }
     if (bookingsError) toast.error("Error loading bookings: " + (bookingsError as Error).message);
   }, [servicesError, barbersError, bookingsError]);
   
@@ -846,11 +861,7 @@ const AdminDashboard = () => {
                         <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
                       </div>
                     </div>
-                  ) : barbers.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No barbers found. Add your first barber to get started.</p>
-                    </div>
-                  ) : (
+                  ) : barbers && barbers.length > 0 ? (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
@@ -874,7 +885,7 @@ const AdminDashboard = () => {
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
-                                      className="touch-manipulation focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-95 transition-transform"
+                                      className="touch-manipulation focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-95 transition-transform dropdown-menu-trigger"
                                     >
                                       <MoreHorizontal className="h-4 w-4" />
                                       <span className="sr-only">Open menu</span>
@@ -882,7 +893,7 @@ const AdminDashboard = () => {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end"
-                                    className="w-[200px] z-50 bg-white dark:bg-slate-950 border border-slate-200"
+                                    className="w-[200px] z-[9999] bg-white dark:bg-slate-950 border border-slate-200"
                                   >
                                     <DropdownMenuItem 
                                       className="cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
@@ -908,6 +919,10 @@ const AdminDashboard = () => {
                           ))}
                         </TableBody>
                       </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No barbers found. Add your first barber to get started.</p>
                     </div>
                   )}
                 </CardContent>

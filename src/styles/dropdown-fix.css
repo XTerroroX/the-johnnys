@@ -24,7 +24,7 @@
 /* Ensure dropdown content appears over other elements */
 [data-state="open"] > [data-radix-dropdown-menu-content] {
   animation: fadeIn 0.1s ease-out;
-  z-index: 100 !important;
+  z-index: 9999 !important; /* Increased z-index to ensure content shows above everything */
   position: relative;
 }
 
@@ -56,5 +56,28 @@
   [role="button"],
   button {
     touch-action: manipulation;
+  }
+
+  /* Force higher z-index for dropdown content on mobile */
+  [data-radix-dropdown-menu-content],
+  .radix-dropdown-content {
+    z-index: 9999 !important;
+    position: fixed !important;
+  }
+
+  /* Enhance touch feedback */
+  .dropdown-menu-trigger:active {
+    transform: scale(0.98);
+  }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  [data-radix-dropdown-menu-content] {
+    transform: translateZ(0) !important; /* Force GPU acceleration */
+  }
+  
+  [role="menuitem"] {
+    -webkit-touch-callout: none !important; /* Disable callout */
   }
 }
