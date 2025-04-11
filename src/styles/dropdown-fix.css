@@ -1,10 +1,11 @@
 
 /* Enhanced styles for dropdown menus to work better on mobile */
 .radix-dropdown-content {
-  z-index: 100 !important;
+  z-index: 9999 !important;
   background-color: var(--background) !important;
   border: 1px solid var(--border) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  position: fixed !important;
 }
 
 /* Increase tap target size on mobile */
@@ -25,7 +26,7 @@
 [data-state="open"] > [data-radix-dropdown-menu-content] {
   animation: fadeIn 0.1s ease-out;
   z-index: 9999 !important; /* Increased z-index to ensure content shows above everything */
-  position: relative;
+  position: fixed !important;
 }
 
 /* Animation for dropdown appearance */

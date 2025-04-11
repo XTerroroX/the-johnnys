@@ -231,7 +231,9 @@ const AdminDashboard = () => {
       
       console.log("Fetched barbers:", data);
       return data || [];
-    }
+    },
+    retry: 2,
+    retryDelay: 1000
   });
   
   const { 
@@ -860,6 +862,10 @@ const AdminDashboard = () => {
                         <div className="h-4 w-4 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
                         <div className="h-4 w-4 animate-bounce rounded-full bg-primary"></div>
                       </div>
+                    </div>
+                  ) : barbersError ? (
+                    <div className="text-center py-8">
+                      <p className="text-red-500">Error loading barbers: {(barbersError as Error).message}</p>
                     </div>
                   ) : barbers && barbers.length > 0 ? (
                     <div className="overflow-x-auto">
