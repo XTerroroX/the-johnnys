@@ -83,6 +83,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileNavigation } from '@/components/admin/MobileNavigation';
 
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: "Service name must be at least 2 characters." }),
@@ -404,6 +405,12 @@ const AdminDashboard = () => {
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <Navbar />
       </div>
+      
+      <MobileNavigation 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        onLogout={handleLogout} 
+      />
       
       <div className="flex h-screen pt-[var(--navbar-height)]">
         <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-30 pt-[var(--navbar-height)] bg-sidebar-background border-r border-sidebar-border">
