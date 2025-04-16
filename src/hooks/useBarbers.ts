@@ -6,10 +6,12 @@ export function useBarbers() {
   return useQuery({
     queryKey: ['barbers'],
     queryFn: async () => {
+      // Updated query to fetch both barber and superadmin profiles
+      // This ensures we display all users that should appear in the barbers list
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'barber')
+        .in('role', ['barber', 'superadmin'])
         .order('name');
       
       if (error) {

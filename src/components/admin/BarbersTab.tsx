@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useBarbers } from '@/hooks/useBarbers';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarberFormDialog } from './BarberFormDialog';
 import { DeleteBarberDialog } from './DeleteBarberDialog';
 import { Barber } from '@/types/barber';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BarbersTabProps {
   onAddNewBarber: () => void;
@@ -48,6 +50,7 @@ export function BarbersTab({
 }: BarbersTabProps) {
   const { data: barbers = [], isLoading: isLoadingBarbers, error: barbersError } = useBarbers();
   const [barberToDelete, setBarberToDelete] = useState<Barber | null>(null);
+  const isMobile = useIsMobile();
 
   return (
     <div className="space-y-8">
@@ -100,15 +103,15 @@ export function BarbersTab({
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              className="touch-manipulation focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-95 transition-transform"
+                              className="dropdown-menu-trigger touch-manipulation focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-95 transition-transform"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
-                            align="end"
-                            side="left"
+                            align={isMobile ? "start" : "end"}
+                            side={isMobile ? "left" : "bottom"}
                             className="w-[200px] z-[9999] bg-white dark:bg-slate-950 border border-slate-200 shadow-lg"
                           >
                             <DropdownMenuItem 

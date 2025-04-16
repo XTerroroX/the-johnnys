@@ -6,6 +6,8 @@
   border: 1px solid var(--border) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   position: fixed !important;
+  max-width: 95vw !important; /* Prevent overflow off screen */
+  width: auto !important;
 }
 
 /* Increase tap target size on mobile */
@@ -13,6 +15,7 @@
   padding: 10px 16px !important;
   touch-action: manipulation !important;
   min-height: 44px !important; /* Apple recommended minimum tap target */
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 /* Fix for iOS/Safari touch events */
@@ -20,6 +23,13 @@
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
   cursor: pointer !important;
+}
+
+/* Dropdown trigger active state for better mobile feedback */
+.dropdown-menu-trigger:active,
+[data-radix-dropdown-menu-trigger]:active {
+  transform: scale(0.98) !important;
+  opacity: 0.9 !important;
 }
 
 /* Ensure dropdown content appears over other elements */
@@ -50,25 +60,53 @@
 
 /* Add visible feedback for touch actions on mobile */
 @media (max-width: 768px) {
+  /* Bigger hit target */
+  [data-radix-dropdown-menu-content] [role="menuitem"] {
+    padding: 12px 16px !important;
+  }
+  
+  /* Clear visual feedback on active state */
   [data-radix-dropdown-menu-content] [role="menuitem"]:active {
-    background-color: rgba(0, 0, 0, 0.05) !important;
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    transition: background-color 0.1s ease-in-out !important;
   }
   
   [role="button"],
   button {
     touch-action: manipulation;
+    min-height: 36px !important;
   }
 
-  /* Force higher z-index for dropdown content on mobile */
+  /* Force higher z-index and positioning for dropdown content on mobile */
   [data-radix-dropdown-menu-content],
   .radix-dropdown-content {
     z-index: 9999 !important;
     position: fixed !important;
+    left: auto !important;
+    right: 10px !important; /* Default alignment to right side with margin */
+    width: auto !important;
+    min-width: 160px !important;
+    background-color: white !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* If dropdown would go off-screen to the right, position it to the left */
+  [data-side="left"] {
+    right: auto !important;
+    left: 10px !important;
+  }
+  
+  /* Enhanced touch feedback */
+  .dropdown-menu-trigger:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
   }
 
-  /* Enhance touch feedback */
-  .dropdown-menu-trigger:active {
-    transform: scale(0.98);
+  /* Ensure all buttons have proper visual feedback */
+  button:active {
+    opacity: 0.85;
+    transition: opacity 0.1s ease;
   }
 }
 
@@ -76,9 +114,41 @@
 @supports (-webkit-touch-callout: none) {
   [data-radix-dropdown-menu-content] {
     transform: translateZ(0) !important; /* Force GPU acceleration */
+    -webkit-overflow-scrolling: touch !important; /* Enable momentum scrolling */
   }
   
   [role="menuitem"] {
     -webkit-touch-callout: none !important; /* Disable callout */
   }
+  
+  /* Fix for iOS momentum scrolling issue */
+  [data-radix-dropdown-menu-content] {
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Fix for iOS menu positioning */
+  .radix-dropdown-content {
+    position: fixed !important;
+    left: auto !important;
+    transform: none !important;
+  }
+}
+
+/* Fix for positioning when dropdown would go out of view */
+[data-radix-dropdown-menu-content][data-side="left"] {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* Ensure dropdown menus are above other content */
+.radix-dropdown-content,
+[data-radix-dropdown-menu-content] {
+  z-index: 9999 !important;
+}
+
+/* Ensure a solid background color for dropdown content */
+[data-radix-dropdown-menu-content] {
+  background-color: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
