@@ -17,11 +17,7 @@ export const supabase = createClient<Database>(
       detectSessionInUrl: false, // Prevent infinite redirects
       storageKey: 'supabase.auth.token', // Consistent storage key
     },
-    global: {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    },
+  
     realtime: {
       params: {
         eventsPerSecond: 10 // Limit realtime events to prevent flooding
