@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -57,12 +56,13 @@ const ProfileImageUpload = ({
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${Date.now()}.${fileExt}`;
 
-      // Fixed upload method with proper parameters
+      // Upload with correct contentType
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('barber_profiles')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true,
+          contentType: file.type, // <--- IMPORTANT FIX
         });
         
       if (uploadError) throw uploadError;
