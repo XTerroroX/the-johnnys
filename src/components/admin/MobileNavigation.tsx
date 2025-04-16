@@ -32,7 +32,7 @@ export function MobileNavigation({ activeTab, onTabChange, onLogout }: MobileNav
         <Button 
           variant="ghost" 
           size="icon"
-          className="md:hidden fixed right-4 top-4 z-50"
+          className="md:hidden fixed right-4 bottom-4 z-50 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </Button>
