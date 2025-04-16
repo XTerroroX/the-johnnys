@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { Button } from '@/components/ui/button';
@@ -115,7 +114,8 @@ export function ServicesTab({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
                             align="end"
-                            className="w-[200px] z-50 bg-white dark:bg-slate-950 border border-slate-200"
+                            side="left"
+                            className="w-[200px] z-[9999] bg-white dark:bg-slate-950 border border-slate-200 shadow-lg"
                           >
                             <DropdownMenuItem 
                               className="cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useServices } from '@/hooks/useServices';
@@ -184,7 +183,8 @@ export function BookingsTab({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
                             align="end"
-                            className="w-[200px] z-[100] bg-white dark:bg-slate-950 border border-slate-200"
+                            side="left"
+                            className="w-[200px] z-[100] bg-white dark:bg-slate-950 border border-slate-200 shadow-lg"
                           >
                             <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                             <DropdownMenuItem

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useBarbers } from '@/hooks/useBarbers';
 import { Button } from '@/components/ui/button';
@@ -109,7 +108,8 @@ export function BarbersTab({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
                             align="end"
-                            className="w-[200px] z-[9999] bg-white dark:bg-slate-950 border border-slate-200"
+                            side="left"
+                            className="w-[200px] z-[9999] bg-white dark:bg-slate-950 border border-slate-200 shadow-lg"
                           >
                             <DropdownMenuItem 
                               className="cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
