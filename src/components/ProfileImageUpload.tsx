@@ -63,7 +63,7 @@ const ProfileImageUpload = ({
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type, // <--- IMPORTANT FIX
+          contentType: "image/jpeg", // <--- IMPORTANT FIX
         });
         
       if (uploadError) throw uploadError;
