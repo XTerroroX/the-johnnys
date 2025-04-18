@@ -5,137 +5,53 @@ import Footer from '@/components/Footer';
 import ServiceCard from '@/components/ServiceCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-
-// Service data - in a real app, this would come from Supabase
-const services = [
-  {
-    id: 1,
-    name: "Classic Cut",
-    price: "$35",
-    description: "Traditional barbering techniques for a timeless look.",
-    features: [
-      "Consultation",
-      "Shampoo & Conditioning",
-      "Precision Haircut",
-      "Hot Towel Finish"
-    ],
-    category: "haircut"
-  },
-  {
-    id: 2,
-    name: "Premium Experience",
-    price: "$55",
-    description: "Our signature service for the complete grooming experience.",
-    features: [
-      "Extended Consultation",
-      "Premium Shampoo & Conditioning",
-      "Precision Haircut",
-      "Beard Trim",
-      "Hot Towel & Facial Massage"
-    ],
-    popular: true,
-    category: "combo"
-  },
-  {
-    id: 3,
-    name: "Beard Grooming",
-    price: "$25",
-    description: "Expert beard trimming and shaping for the perfect look.",
-    features: [
-      "Beard Consultation",
-      "Precision Trimming",
-      "Shape Design",
-      "Beard Conditioning"
-    ],
-    category: "beard"
-  },
-  {
-    id: 4,
-    name: "Buzz Cut",
-    price: "$25",
-    description: "Quick and efficient all-over short cut with clippers.",
-    features: [
-      "Consultation",
-      "Precision Clipper Work",
-      "Even Length All Over",
-      "Clean Edges"
-    ],
-    category: "haircut"
-  },
-  {
-    id: 5,
-    name: "Skin Fade",
-    price: "$45",
-    description: "Gradual fade from skin to your desired length on top.",
-    features: [
-      "Consultation",
-      "Precision Fade Technique",
-      "Styling for Top Length",
-      "Edge Detailing"
-    ],
-    category: "haircut"
-  },
-  {
-    id: 6,
-    name: "Hot Towel Shave",
-    price: "$35",
-    description: "Traditional straight razor shave with hot towel preparation.",
-    features: [
-      "Hot Towel Preparation",
-      "Pre-Shave Oil",
-      "Straight Razor Shave",
-      "After-Shave Treatment"
-    ],
-    category: "beard"
-  },
-  {
-    id: 7,
-    name: "Father & Son Package",
-    price: "$75",
-    description: "Quality time with matching haircuts for father and son.",
-    features: [
-      "Two Haircuts",
-      "Styling for Both",
-      "Complimentary Drinks",
-      "10% Off Products"
-    ],
-    category: "combo"
-  },
-  {
-    id: 8,
-    name: "Hair Coloring",
-    price: "$65+",
-    description: "Professional color application for a refreshed look.",
-    features: [
-      "Color Consultation",
-      "Professional Application",
-      "Processing Time",
-      "Styling"
-    ],
-    category: "coloring"
-  },
-  {
-    id: 9,
-    name: "Groom Package",
-    price: "$120",
-    description: "Complete preparation for the big day.",
-    features: [
-      "Premium Haircut",
-      "Beard Styling",
-      "Facial Treatment",
-      "Glass of Whiskey"
-    ],
-    popular: true,
-    category: "combo"
-  }
-];
+import { useServices } from '@/hooks/useServices';
+import { formatCurrency } from '@/utils/bookingUtils';
 
 const Services = () => {
+  const { data: services = [], isLoading } = useServices();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const categories = [...new Set(services.map(service => service.category))];
+  // Group services by category based on their name
+  const categorizeServices = (service) => {
+    const name = service.name.toLowerCase();
+    if (name.includes('cut') || name.includes('fade')) return 'haircut';
+    if (name.includes('beard') || name.includes('shave')) return 'beard';
+    if (name.includes('color')) return 'coloring';
+    return 'combo';
+  };
+
+  // Group services by category
+  const servicesByCategory = services.reduce((acc, service) => {
+    const category = categorizeServices(service);
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(service);
+    return acc;
+  }, {});
+
+  const categories = Object.keys(servicesByCategory);
+
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-24">
+          <section className="bg-slate-950 text-white py-20">
+            <div className="page-container text-center">
+              <h1 className="mb-6">Our Services</h1>
+              <div className="flex justify-center">
+                <div className="w-6 h-6 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -164,19 +80,19 @@ const Services = () => {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {services
-                  .filter(service => service.category === category)
-                  .map(service => (
-                    <ServiceCard
-                      key={service.id}
-                      name={service.name}
-                      price={service.price}
-                      description={service.description}
-                      features={service.features}
-                      popular={service.popular}
-                    />
-                  ))
-                }
+                {servicesByCategory[category].map(service => (
+                  <ServiceCard
+                    key={service.id}
+                    name={service.name}
+                    price={formatCurrency(service.price)}
+                    description={service.description || ''}
+                    features={[
+                      `${service.duration} minutes`,
+                      ...(service.description ? [service.description] : [])
+                    ]}
+                    popular={category === 'combo'}
+                  />
+                ))}
               </div>
             </div>
           </section>
