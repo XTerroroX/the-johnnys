@@ -1,10 +1,11 @@
-
 import { useEffect } from 'react';
 import { Scissors, Clock, Award, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import ServiceCard from '@/components/ServiceCard';
+import { useServices } from '@/hooks/useServices';
+import { formatCurrency } from '@/utils/bookingUtils';
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
   <div className="glass-card p-6 h-full">
@@ -27,9 +28,17 @@ const Testimonial = ({ quote, author, role }: { quote: string, author: string, r
 );
 
 const Home = () => {
+  const { data: services = [], isLoading } = useServices();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Get top 3 services by price (most premium services)
+  const topServices = [...services]
+    .filter(service => service.active)
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 3);
 
   return (
     <>
@@ -85,41 +94,29 @@ const Home = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-              <ServiceCard 
-                name="Classic Cut"
-                price="$35"
-                description="Traditional barbering techniques for a timeless look."
-                features={[
-                  "Consultation",
-                  "Shampoo & Conditioning",
-                  "Precision Haircut",
-                  "Hot Towel Finish"
-                ]}
-              />
-              <ServiceCard 
-                name="Premium Experience"
-                price="$55"
-                description="Our signature service for the complete grooming experience."
-                features={[
-                  "Extended Consultation",
-                  "Premium Shampoo & Conditioning",
-                  "Precision Haircut",
-                  "Beard Trim",
-                  "Hot Towel & Facial Massage"
-                ]}
-                popular={true}
-              />
-              <ServiceCard 
-                name="Beard Grooming"
-                price="$25"
-                description="Expert beard trimming and shaping for the perfect look."
-                features={[
-                  "Beard Consultation",
-                  "Precision Trimming",
-                  "Shape Design",
-                  "Beard Conditioning"
-                ]}
-              />
+              {isLoading ? (
+                // Loading state - show placeholder cards
+                Array(3).fill(0).map((_, index) => (
+                  <div 
+                    key={index} 
+                    className="glass-card p-6 h-[400px] animate-pulse bg-slate-100 dark:bg-slate-800"
+                  />
+                ))
+              ) : (
+                topServices.map((service, index) => (
+                  <ServiceCard 
+                    key={service.id}
+                    name={service.name}
+                    price={formatCurrency(service.price)}
+                    description={service.description || ''}
+                    features={[
+                      `${service.duration} minutes`,
+                      ...(service.description ? [service.description] : [])
+                    ]}
+                    popular={index === 1} // Middle card marked as popular
+                  />
+                ))
+              )}
             </div>
             
             <div className="text-center mt-12">
