@@ -127,36 +127,6 @@ const Home = () => {
           </div>
         </section>
         
-        {/* Testimonials Section */}
-        <section className="py-20 bg-slate-50 dark:bg-slate-900">
-          <div className="page-container">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="mb-4">What Our Clients Say</h2>
-              <p className="text-muted-foreground">
-                Don't just take our word for it. Here's what our customers have to say.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Testimonial 
-                quote="The best haircut I've ever had. The attention to detail and the overall experience was top-notch."
-                author="Michael Scott"
-                role="Loyal Customer"
-              />
-              <Testimonial 
-                quote="I've been going to The Johnnys for over a year now, and I've never been disappointed. Highly recommended!"
-                author="James Wilson"
-                role="Monthly Subscriber"
-              />
-              <Testimonial 
-                quote="Not only was my haircut perfect, but the atmosphere and conversation made for an enjoyable experience."
-                author="Robert Chen"
-                role="First-time Customer"
-              />
-            </div>
-          </div>
-        </section>
-        
         {/* CTA Section */}
         <section className="py-20 bg-primary text-primary-foreground">
           <div className="page-container text-center max-w-3xl mx-auto">
