@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Scissors, Clock, Award, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -25,7 +24,6 @@ const Home = () => {
       <Navbar />
       <main>
         <Hero />
-        
         {/* Features Section */}
         <section className="py-20 bg-slate-50 dark:bg-slate-900">
           <div className="page-container">
@@ -36,7 +34,6 @@ const Home = () => {
                 a premium grooming experience.
               </p>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FeatureCard 
                 icon={<Scissors className="h-6 w-6 text-primary" />}
@@ -61,7 +58,6 @@ const Home = () => {
             </div>
           </div>
         </section>
-
         {/* CTA Section */}
         <section className="py-20 bg-primary text-primary-foreground">
           <div className="page-container text-center max-w-3xl mx-auto">

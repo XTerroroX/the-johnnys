@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
@@ -16,10 +15,8 @@ const Navbar = () => {
   const [isBarberOrAdmin, setIsBarberOrAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  // Determine if we're on a portal page by checking if the pathname contains "dashboard"
   const isPortal = location.pathname.includes('dashboard');
 
-  // Use React Query to fetch profile data
   const { data: profileData, isLoading: isProfileLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -38,8 +35,8 @@ const Navbar = () => {
       
       return data;
     },
-    enabled: !!user?.id, // Only run query if we have a user ID
-    staleTime: 60 * 1000, // 1 minute
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
     retry: 3,
   });
   
@@ -62,7 +59,6 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    // First check for existing session
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -73,7 +69,6 @@ const Navbar = () => {
     
     checkSession();
     
-    // Then set up listener for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed in Navbar:', event);
@@ -101,7 +96,6 @@ const Navbar = () => {
 
   const navigationItems = [
     { name: 'Home', path: '/' },
-    { name: 'Services', path: '/services' },
     { name: 'Booking', path: '/booking' },
   ];
 
@@ -109,7 +103,6 @@ const Navbar = () => {
     <header
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        // If on a portal, use a solid background (and add extra padding if needed), otherwise use the original style.
         isPortal || isScrolled
           ? 'py-3 bg-white dark:bg-slate-900 shadow-sm'
           : 'py-5 bg-transparent'
@@ -117,7 +110,6 @@ const Navbar = () => {
     >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between w-full">
-          {/* Left Section: Logo + Navigation Links */}
           <div className="flex items-center flex-1">
             <Link to="/" className="text-2xl font-display font-bold whitespace-nowrap mr-8">
               The Johnnys
@@ -134,8 +126,6 @@ const Navbar = () => {
               ))}
             </nav>
           </div>
-
-          {/* Right Section: User Info and Buttons */}
           <div className="flex items-center space-x-4">
             {user ? (
               <>
@@ -173,16 +163,12 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu Button */}
       <button
         className="md:hidden"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       >
         {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
-
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden h-screen w-full bg-background animate-fade-in">
           <div className="container px-4 py-8 space-y-8">

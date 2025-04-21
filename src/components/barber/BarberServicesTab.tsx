@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, MoreHorizontal, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,91 +17,24 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useBarberServices } from '@/hooks/useBarberServices';
+import { useCreateBarberService } from '@/hooks/useCreateBarberService';
+import { useUpdateBarberService } from '@/hooks/useUpdateBarberService';
+import { useDeleteBarberService } from '@/hooks/useDeleteBarberService';
 
 export default function BarberServicesTab({ barberId }: { barberId: string }) {
   const [editService, setEditService] = useState<any | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<number | null>(null);
-  const queryClient = useQueryClient();
 
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ['barber_services', barberId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('barber_services')
-        .select('*')
-        .eq('barber_id', barberId)
-        .order('created_at');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!barberId,
-  });
-
-  const createOrUpdateService = useMutation({
-    mutationFn: async (form: any) => {
-      if (form.id) {
-        const { error } = await supabase
-          .from('barber_services')
-          .update({
-            name: form.name,
-            description: form.description,
-            price: Number(form.price),
-            duration: Number(form.duration),
-            active: form.active,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', form.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('barber_services')
-          .insert({
-            barber_id: barberId,
-            name: form.name,
-            description: form.description,
-            price: Number(form.price),
-            duration: Number(form.duration),
-            active: form.active,
-          });
-        if (error) throw error;
-      }
-      queryClient.invalidateQueries({ queryKey: ['barber_services', barberId] });
-    },
-    onSuccess: () => {
-      toast.success("Service saved");
-      setShowDialog(false);
-      setEditService(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    }
-  });
-
-  const deleteService = useMutation({
-    mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from('barber_services')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['barber_services', barberId] });
-    },
-    onSuccess: () => {
-      toast.success('Service deleted');
-      setDeleteServiceId(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    }
-  });
+  const { data: services = [], isLoading } = useBarberServices(barberId);
+  const createService = useCreateBarberService(barberId);
+  const updateService = useUpdateBarberService(barberId);
+  const deleteService = useDeleteBarberService(barberId);
 
   const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Form validation
     const form = Object.fromEntries(new FormData(event.currentTarget));
     if (String(form.name).length < 2) {
       toast.error("Name must be at least 2 characters");
@@ -115,7 +48,28 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
       toast.error("Duration must be at least 5 minutes");
       return;
     }
-    createOrUpdateService.mutate({ ...editService, ...form });
+    if (editService) {
+      updateService.mutate({ ...editService, ...form }, {
+        onSuccess: () => {
+          toast.success("Service updated");
+          setShowDialog(false);
+          setEditService(null);
+        },
+        onError: (error: any) => {
+          toast.error(error.message);
+        }
+      });
+    } else {
+      createService.mutate(form, {
+        onSuccess: () => {
+          toast.success("Service created");
+          setShowDialog(false);
+        },
+        onError: (error: any) => {
+          toast.error(error.message);
+        }
+      });
+    }
   };
 
   return (
@@ -175,7 +129,7 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="z-50 bg-white">
                             <DropdownMenuItem onClick={() => { setEditService(service); setShowDialog(true); }}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
@@ -183,7 +137,7 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                             <DropdownMenuItem 
                               className="text-red-600"
                               onClick={() => setDeleteServiceId(service.id)}>
-                              <Trash className="mr-2 h-4 w-4" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -265,7 +219,7 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                 onClick={() => { setShowDialog(false); setEditService(null); }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createOrUpdateService.isPending}>
+              <Button type="submit" disabled={createService.isPending || updateService.isPending}>
                 {editService ? 'Update' : 'Create'}
               </Button>
             </div>
@@ -290,8 +244,15 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                 type="button"
                 variant="destructive"
                 onClick={() => {
-                  deleteService.mutate(deleteServiceId);
-                  setDeleteServiceId(null);
+                  deleteService.mutate(deleteServiceId!, {
+                    onSuccess: () => {
+                      toast.success('Service deleted');
+                      setDeleteServiceId(null);
+                    },
+                    onError: (error: any) => {
+                      toast.error(error.message);
+                    }
+                  });
                 }}>
                 Delete
               </Button>
