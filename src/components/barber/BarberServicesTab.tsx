@@ -33,6 +33,7 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
   const updateService = useUpdateBarberService(barberId);
   const deleteService = useDeleteBarberService(barberId);
 
+  // Handler for both create and update:
   const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = Object.fromEntries(new FormData(event.currentTarget));
@@ -72,15 +73,33 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
     }
   };
 
+  // FAB for mobile, top-right button for desktop:
+  const AddServiceButton = (
+    <Button
+      onClick={() => { setEditService(null); setShowDialog(true); }}
+      className="flex items-center gap-2 md:static md:ml-auto
+        fixed z-[100] bottom-4 right-4 md:relative md:bottom-auto md:right-auto
+        shadow-lg md:shadow-none rounded-full md:rounded
+        bg-primary md:bg-primary
+        text-white
+        md:px-4 md:py-2 px-5 py-4
+        transition-all"
+      size="lg"
+      aria-label="Add Service"
+    >
+      <Plus className="mr-2 h-5 w-5" />
+      <span className="hidden md:inline">Add New Service</span>
+    </Button>
+  );
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative">
         <h1 className="text-2xl font-bold">My Services</h1>
-        <Button onClick={() => { setEditService(null); setShowDialog(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Service
-        </Button>
+        {/* Button is always visible for all roles */}
+        <div className='hidden md:block'>{AddServiceButton}</div>
       </div>
+      <div className='block md:hidden'>{AddServiceButton}</div>
       <Card>
         <CardHeader>
           <CardTitle>My Barber Services</CardTitle>
@@ -125,16 +144,21 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="dropdown-menu-trigger touch-manipulation z-[100]"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="z-50 bg-white">
+                          <DropdownMenuContent align="end" className="z-[9999] bg-white dark:bg-slate-950 border border-slate-200 shadow-lg">
                             <DropdownMenuItem onClick={() => { setEditService(service); setShowDialog(true); }}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
                               onClick={() => setDeleteServiceId(service.id)}>
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -151,9 +175,9 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
           )}
         </CardContent>
       </Card>
-
+      {/* Add/Edit Dialog */}
       {showDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
           <form
             onSubmit={handleSave}
             className="bg-white dark:bg-slate-900 p-6 rounded-lg space-y-4 max-w-sm w-full"
@@ -226,10 +250,9 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
           </form>
         </div>
       )}
-
       {/* Delete confirmation */}
       {deleteServiceId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg space-y-4 max-w-sm w-full">
             <h4 className="text-lg font-semibold mb-4">Delete Service</h4>
             <p>Are you sure you want to delete this service?</p>
