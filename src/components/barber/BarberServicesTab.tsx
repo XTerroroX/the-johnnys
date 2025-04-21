@@ -243,7 +243,9 @@ export default function BarberServicesTab({ barberId }: { barberId: string }) {
                 onClick={() => { setShowDialog(false); setEditService(null); }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createService.isPending || updateService.isPending}>
+              <Button 
+                type="submit" 
+                disabled={createService.isPending || updateService.isPending}>
                 {editService ? 'Update' : 'Create'}
               </Button>
             </div>
