@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,14 +7,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import CustomerInfoFields from './CustomerInfoFields';
 import ServiceSelection from './ServiceSelection';
-import { 
-  fetchServices, 
-  convertTo24Hour, 
-  calculateEndTime, 
-  formatBookingDate 
+import {
+  convertTo24Hour,
+  calculateEndTime,
+  formatBookingDate
 } from '@/utils/bookingUtils';
 
 const formSchema = z.object({
@@ -31,21 +30,20 @@ interface BookingFormProps {
   selectedDate: Date | undefined;
   selectedTime: string | null;
   onCompleted: () => void;
+  services: any[]; // List of that barber's services
+  isLoadingServices: boolean;
 }
 
-const BookingForm = ({ 
-  selectedBarber, 
-  selectedDate, 
+const BookingForm = ({
+  selectedBarber,
+  selectedDate,
   selectedTime,
-  onCompleted 
+  onCompleted,
+  services,
+  isLoadingServices,
 }: BookingFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { data: services = [], isLoading: isLoadingServices } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => fetchServices(supabase)
-  });
-  
+
   const methods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,16 +60,13 @@ const BookingForm = ({
       toast.error("Please select a barber, date, and time before booking");
       return;
     }
-    
     setIsSubmitting(true);
-    
     try {
-      // Build a detailed list of selected service objects to store in the new 'selected_services' JSON column
+      // Find selected services by id
       const chosenServices = services.filter(svc =>
         values.selectedServices.includes(svc.id.toString())
       );
 
-      // Sum durations to figure out the total booking length
       let totalDuration = 0;
       let totalPrice = 0;
       chosenServices.forEach(svc => {
@@ -79,32 +74,25 @@ const BookingForm = ({
         totalPrice += parseFloat(svc.price);
       });
 
-      // Format the date
       const formattedDate = formatBookingDate(selectedDate);
-      
-      // Convert selectedTime (e.g. "10:00 AM") to 24-hour for storing
       const time24h = convertTo24Hour(selectedTime);
-      
-      // Calculate end time
       const endTime = calculateEndTime(selectedTime, totalDuration);
 
-      // Fix: Use the first chosen service's ID as service_id (required field)
-      // Get the first chosen service ID or default to 1 if none available
-      const primaryServiceId = chosenServices.length > 0 ? parseInt(chosenServices[0].id.toString()) : 1;
-      
-      // Insert booking with multiple services in a JSON column
+      // Pick primary service ID as first selected
+      const primaryServiceId = chosenServices.length > 0
+        ? parseInt(chosenServices[0].id.toString())
+        : 1;
+
       const { error } = await supabase
         .from('bookings')
         .insert({
           barber_id: selectedBarber,
-          // We store an array of service objects or IDs in a new "selected_services" JSON column
           selected_services: chosenServices.map(svc => ({
             id: svc.id,
             name: svc.name,
             price: svc.price,
             duration: svc.duration
           })),
-          // Fix: Add the required service_id field
           service_id: primaryServiceId,
           date: formattedDate,
           start_time: time24h,
@@ -116,17 +104,15 @@ const BookingForm = ({
           status: 'confirmed'
         })
         .select();
-      
+
       if (error) {
-        console.error("Booking error details:", error);
         throw new Error(error.message || "Failed to create booking");
       }
-      
+
       toast.success("Booking confirmed! We'll see you soon.");
       methods.reset();
       onCompleted();
     } catch (error: any) {
-      console.error("Booking error:", error);
       toast.error(error.message || "There was a problem with your booking. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -144,19 +130,14 @@ const BookingForm = ({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Your Information</h3>
-      
       <FormProvider {...methods}>
         <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Customer Information Fields */}
           <CustomerInfoFields />
-
-          {/* Service Selection */}
+          {/* Service Selection: now only that barber's services */}
           <ServiceSelection services={services} />
-          
-          {/* Submit */}
           <div className="pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={isSubmitting || !selectedBarber || !selectedDate || !selectedTime}
             >

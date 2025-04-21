@@ -425,14 +425,6 @@ const AdminDashboard = () => {
                 Dashboard
               </Button>
               <Button
-                variant={activeTab === "services" ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setActiveTab("services")}
-              >
-                <Scissors className="mr-2 h-5 w-5" />
-                Services
-              </Button>
-              <Button
                 variant={activeTab === "barbers" ? "default" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => setActiveTab("barbers")}
@@ -476,20 +468,6 @@ const AdminDashboard = () => {
               </div>
               <AdminStats />
             </div>
-          )}
-
-          {activeTab === "services" && (
-            <ServicesTab
-              onAddNewService={handleAddNewService}
-              onEditService={handleEditService}
-              selectedService={selectedService}
-              isServiceDialogOpen={isServiceDialogOpen}
-              setIsServiceDialogOpen={setIsServiceDialogOpen}
-              isDeleteServiceDialogOpen={isDeleteServiceDialogOpen}
-              setIsDeleteServiceDialogOpen={setIsDeleteServiceDialogOpen}
-              serviceForm={serviceForm}
-              deleteServiceMutation={deleteServiceMutation}
-            />
           )}
 
           {activeTab === "barbers" && (

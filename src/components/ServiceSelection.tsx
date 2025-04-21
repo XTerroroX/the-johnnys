@@ -1,13 +1,11 @@
 
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { formatCurrency } from '@/utils/bookingUtils';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface Service {
-  id: string;
+  id: string | number;
   name: string;
-  price: string;
+  price: string | number;
   duration: number;
 }
 
@@ -15,16 +13,18 @@ interface ServiceSelectionProps {
   services: Service[];
 }
 
+const formatCurrency = (amount: string | number) =>
+  "$" + parseFloat(amount as any).toFixed(2);
+
 const ServiceSelection = ({ services }: ServiceSelectionProps) => {
   const { control, watch } = useFormContext();
-  
-  // Calculate total price for the selected services in real-time
   const selectedServiceIds = watch('selectedServices') || [];
-  const selectedServiceObjects = services.filter(svc => 
+  const selectedServiceObjects = services.filter(svc =>
     selectedServiceIds.includes(svc.id.toString())
   );
   const totalPrice = selectedServiceObjects.reduce(
-    (sum, svc) => sum + parseFloat(svc.price), 0
+    (sum, svc) => sum + parseFloat(svc.price as any),
+    0
   );
 
   return (
@@ -38,22 +38,21 @@ const ServiceSelection = ({ services }: ServiceSelectionProps) => {
             <div className="space-y-2">
               {services.map(service => (
                 <div key={service.id} className="flex items-center">
-                  <Checkbox
+                  <input
+                    type="checkbox"
                     id={`svc-${service.id}`}
                     checked={field.value?.includes(service.id.toString())}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        // add
+                    onChange={(e) => {
+                      if (e.target.checked) {
                         field.onChange([...(field.value || []), service.id.toString()]);
                       } else {
-                        // remove
                         field.onChange(field.value?.filter((val: string) => val !== service.id.toString()) || []);
                       }
                     }}
                     className="mr-2"
                   />
                   <label htmlFor={`svc-${service.id}`} className="text-sm cursor-pointer">
-                    {service.name} - {formatCurrency(parseFloat(service.price))} ({service.duration} min)
+                    {service.name} - {formatCurrency(service.price)} ({service.duration} min)
                   </label>
                 </div>
               ))}
@@ -62,8 +61,6 @@ const ServiceSelection = ({ services }: ServiceSelectionProps) => {
           </FormItem>
         )}
       />
-
-      {/* Display total price for user reference */}
       {selectedServiceObjects.length > 0 && (
         <p className="text-sm font-medium mt-2">
           Total: {formatCurrency(totalPrice)}

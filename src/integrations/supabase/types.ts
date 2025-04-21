@@ -50,6 +50,50 @@ export type Database = {
           },
         ]
       }
+      barber_services: {
+        Row: {
+          active: boolean
+          barber_id: string
+          created_at: string
+          description: string | null
+          duration: number
+          id: number
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          barber_id: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: number
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          barber_id?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: number
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_services_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_notifications: {
         Row: {
           barber_id: string

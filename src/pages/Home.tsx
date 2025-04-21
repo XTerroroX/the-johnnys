@@ -1,11 +1,9 @@
+
 import { useEffect } from 'react';
 import { Scissors, Clock, Award, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
-import ServiceCard from '@/components/ServiceCard';
-import { useServices } from '@/hooks/useServices';
-import { formatCurrency } from '@/utils/bookingUtils';
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
   <div className="glass-card p-6 h-full">
@@ -17,28 +15,10 @@ const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, titl
   </div>
 );
 
-const Testimonial = ({ quote, author, role }: { quote: string, author: string, role: string }) => (
-  <div className="glass-card p-6 h-full">
-    <p className="italic text-lg mb-6">{quote}</p>
-    <div>
-      <p className="font-semibold">{author}</p>
-      <p className="text-sm text-muted-foreground">{role}</p>
-    </div>
-  </div>
-);
-
 const Home = () => {
-  const { data: services = [], isLoading } = useServices();
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Get top 3 services by price (most premium services)
-  const topServices = [...services]
-    .filter(service => service.active)
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 3);
 
   return (
     <>
@@ -81,52 +61,7 @@ const Home = () => {
             </div>
           </div>
         </section>
-        
-        {/* Popular Services Section */}
-        <section className="py-20">
-          <div className="page-container">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="mb-4">Our Popular Services</h2>
-              <p className="text-muted-foreground">
-                From classic cuts to modern styles, we offer a range of services 
-                to keep you looking your best.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-              {isLoading ? (
-                // Loading state - show placeholder cards
-                Array(3).fill(0).map((_, index) => (
-                  <div 
-                    key={index} 
-                    className="glass-card p-6 h-[400px] animate-pulse bg-slate-100 dark:bg-slate-800"
-                  />
-                ))
-              ) : (
-                topServices.map((service, index) => (
-                  <ServiceCard 
-                    key={service.id}
-                    name={service.name}
-                    price={formatCurrency(service.price)}
-                    description={service.description || ''}
-                    features={[
-                      `${service.duration} minutes`,
-                      ...(service.description ? [service.description] : [])
-                    ]}
-                    popular={index === 1} // Middle card marked as popular
-                  />
-                ))
-              )}
-            </div>
-            
-            <div className="text-center mt-12">
-              <a href="/services" className="text-primary font-medium hover:underline">
-                View All Services →
-              </a>
-            </div>
-          </div>
-        </section>
-        
+
         {/* CTA Section */}
         <section className="py-20 bg-primary text-primary-foreground">
           <div className="page-container text-center max-w-3xl mx-auto">

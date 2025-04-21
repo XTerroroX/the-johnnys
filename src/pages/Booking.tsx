@@ -13,7 +13,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { useQuery } from '@tanstack/react-query';
 
-
 type Barber = Tables<'profiles'>;
 
 const fetchBarbers = async () => {
@@ -30,6 +29,18 @@ const fetchBarbers = async () => {
   return data || [];
 };
 
+const fetchBarberServices = async (barberId: string | null) => {
+  if (!barberId) return [];
+  const { data, error } = await supabase
+    .from('barber_services')
+    .select('*')
+    .eq('barber_id', barberId)
+    .eq('active', true)
+    .order('created_at');
+  if (error) throw error;
+  return data || [];
+};
+
 const Booking = () => {
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -41,6 +52,12 @@ const Booking = () => {
     queryFn: fetchBarbers
   });
   
+  const { data: barberServices = [], isLoading: isLoadingServices } = useQuery({
+    queryKey: ['barber_services', selectedBarber],
+    queryFn: () => fetchBarberServices(selectedBarber),
+    enabled: !!selectedBarber,
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -133,10 +150,6 @@ const Booking = () => {
                               )}
                             </div>
                             <h4 className="font-semibold">{barber.name}</h4>
-
-                            {/* Removed the line that displayed "Barber" or specialty: 
-                                <p className="text-sm text-muted-foreground">{barber.specialty || 'Barber'}</p> 
-                            */}
                           </button>
                         ))}
                       </div>
@@ -201,6 +214,8 @@ const Booking = () => {
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
                     onCompleted={() => setBookingComplete(true)}
+                    services={barberServices}
+                    isLoadingServices={isLoadingServices}
                   />
                 </div>
               </div>

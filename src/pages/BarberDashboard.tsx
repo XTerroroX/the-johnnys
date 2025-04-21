@@ -35,6 +35,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import Navbar from '@/components/Navbar';
+import BarberServicesTab from '@/components/barber/BarberServicesTab';
 
 const BarberDashboard = () => {
   const navigate = useNavigate();
@@ -128,20 +129,17 @@ const BarberDashboard = () => {
     }
   };
   
-  // Skip rendering until we have authenticated the user
   if (!userId) {
     return null;
   }
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Fixed Navbar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <Navbar />
       </div>
       
       <div className="flex h-screen pt-[var(--navbar-height)]">
-        {/* Sidebar */}
         <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-30 pt-[var(--navbar-height)] bg-sidebar-background border-r border-sidebar-border">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="px-4 mb-6">
@@ -165,12 +163,12 @@ const BarberDashboard = () => {
                 Appointments
               </Button>
               <Button
-                variant={activeTab === "profile" ? "default" : "ghost"}
+                variant={activeTab === "services" ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setActiveTab("profile")}
+                onClick={() => setActiveTab("services")}
               >
-                <User className="mr-2 h-5 w-5" />
-                My Profile
+                <Settings className="mr-2 h-5 w-5" />
+                My Services
               </Button>
               <Button
                 variant="ghost"
@@ -184,7 +182,6 @@ const BarberDashboard = () => {
           </div>
         </aside>
         
-        {/* Mobile menu button - shown on small screens */}
         <div className="md:hidden fixed bottom-4 right-4 z-40">
           <Button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -213,7 +210,6 @@ const BarberDashboard = () => {
           </Button>
         </div>
         
-        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm">
             <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white dark:bg-slate-900 shadow-xl p-6">
@@ -254,15 +250,15 @@ const BarberDashboard = () => {
                   Appointments
                 </Button>
                 <Button
-                  variant={activeTab === "profile" ? "default" : "ghost"}
+                  variant={activeTab === "services" ? "default" : "ghost"}
                   className="w-full justify-start"
                   onClick={() => {
-                    setActiveTab("profile");
+                    setActiveTab("services");
                     setMobileMenuOpen(false);
                   }}
                 >
-                  <User className="mr-2 h-5 w-5" />
-                  My Profile
+                  <Settings className="mr-2 h-5 w-5" />
+                  My Services
                 </Button>
                 <Button
                   variant="ghost"
@@ -277,9 +273,7 @@ const BarberDashboard = () => {
           </div>
         )}
         
-        {/* Main content */}
         <main className="flex-1 md:ml-64 p-4 md:p-8 pt-[var(--navbar-height)]">
-          {/* Dashboard Tab */}
           {activeTab === "dashboard" && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -385,7 +379,6 @@ const BarberDashboard = () => {
             </div>
           )}
           
-          {/* Appointments Tab */}
           {activeTab === "appointments" && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -501,7 +494,10 @@ const BarberDashboard = () => {
             </div>
           )}
           
-          {/* Profile Tab */}
+          {activeTab === "services" && userId && (
+            <BarberServicesTab barberId={userId} />
+          )}
+          
           {activeTab === "profile" && (
             <div className="space-y-8">
               <h1 className="text-2xl font-bold">My Profile</h1>
