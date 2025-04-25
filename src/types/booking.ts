@@ -13,6 +13,12 @@ export interface Booking {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  selected_services?: Array<{
+    id: number;
+    name: string;
+    price: number;
+    duration: number;
+  }>;
   service: {
     id: number;
     name: string;

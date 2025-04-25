@@ -19,13 +19,24 @@ const formatCurrency = (amount: string | number) =>
 const ServiceSelection = ({ services }: ServiceSelectionProps) => {
   const { control, watch } = useFormContext();
   const selectedServiceIds = watch('selectedServices') || [];
+  
+  // Make sure we're using string comparison for IDs
   const selectedServiceObjects = services.filter(svc =>
     selectedServiceIds.includes(svc.id.toString())
   );
+  
   const totalPrice = selectedServiceObjects.reduce(
     (sum, svc) => sum + parseFloat(svc.price as any),
     0
   );
+
+  if (services.length === 0) {
+    return (
+      <div className="py-2 text-muted-foreground italic text-sm">
+        No services available for the selected barber.
+      </div>
+    );
+  }
 
   return (
     <>

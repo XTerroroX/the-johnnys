@@ -62,10 +62,25 @@ const BookingForm = ({
     }
     setIsSubmitting(true);
     try {
+      // Validate barber exists
+      const { data: barberExists, error: barberError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', selectedBarber)
+        .single();
+      
+      if (barberError || !barberExists) {
+        throw new Error("Selected barber is not available. Please try again.");
+      }
+      
       // Find selected services by id
       const chosenServices = services.filter(svc =>
         values.selectedServices.includes(svc.id.toString())
       );
+      
+      if (chosenServices.length === 0) {
+        throw new Error("No valid services selected. Please try again.");
+      }
 
       let totalDuration = 0;
       let totalPrice = 0;
@@ -81,8 +96,13 @@ const BookingForm = ({
       // Pick primary service ID as first selected
       const primaryServiceId = chosenServices.length > 0
         ? parseInt(chosenServices[0].id.toString())
-        : 1;
-
+        : null;
+      
+      // Validate this service exists
+      if (!primaryServiceId) {
+        throw new Error("Could not determine the primary service. Please try again.");
+      }
+      
       const { error } = await supabase
         .from('bookings')
         .insert({
@@ -106,6 +126,7 @@ const BookingForm = ({
         .select();
 
       if (error) {
+        console.error("Booking error:", error);
         throw new Error(error.message || "Failed to create booking");
       }
 
@@ -113,6 +134,7 @@ const BookingForm = ({
       methods.reset();
       onCompleted();
     } catch (error: any) {
+      console.error("Booking submission error:", error);
       toast.error(error.message || "There was a problem with your booking. Please try again.");
     } finally {
       setIsSubmitting(false);

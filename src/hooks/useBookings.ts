@@ -15,7 +15,12 @@ export function useBookings() {
           barber:barber_id (id, name, email)
         `)
         .order('date', { ascending: false });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Error fetching bookings:", error);
+        throw error;
+      }
+      
       return data as unknown as Booking[];
     }
   });

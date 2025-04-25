@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useServices } from '@/hooks/useServices';
@@ -53,11 +54,13 @@ export function BookingsTab({
     const matchesSearch = 
       booking.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.barber.name.toLowerCase().includes(searchQuery.toLowerCase());
+      (booking.service?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (booking.barber?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
     const matchesDate = !dateFilter || booking.date === dateFilter;
     const matchesBarber = !barberFilter || booking.barber_id === barberFilter;
     const matchesService = !serviceFilter || booking.service_id === parseInt(serviceFilter);
+    
     return matchesSearch && matchesDate && matchesBarber && matchesService;
   });
 
@@ -158,8 +161,8 @@ export function BookingsTab({
                         <div>{booking.customer_name}</div>
                         <div className="text-xs text-muted-foreground">{booking.customer_email}</div>
                       </TableCell>
-                      <TableCell>{booking.service.name}</TableCell>
-                      <TableCell>{booking.barber.name}</TableCell>
+                      <TableCell>{booking.service?.name || 'Unknown Service'}</TableCell>
+                      <TableCell>{booking.barber?.name || 'Unknown Barber'}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : 

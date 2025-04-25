@@ -1,3 +1,4 @@
+
 // src/pages/Booking.tsx (or wherever your Booking component is located)
 import { useState, useEffect } from 'react';
 import { Check, Clock } from 'lucide-react';
@@ -31,13 +32,20 @@ const fetchBarbers = async () => {
 
 const fetchBarberServices = async (barberId: string | null) => {
   if (!barberId) return [];
+  
+  // Fetch from barber_services table instead of services
   const { data, error } = await supabase
     .from('barber_services')
     .select('*')
     .eq('barber_id', barberId)
-    .eq('active', true)
-    .order('created_at');
-  if (error) throw error;
+    .eq('active', true);
+    
+  if (error) {
+    console.error('Error fetching barber services:', error);
+    throw error;
+  }
+  
+  console.log('Fetched barber services:', data);
   return data || [];
 };
 
