@@ -20,9 +20,8 @@ export function MobileNavigation({ activeTab, onTabChange, onLogout }: MobileNav
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
-    { id: "services", label: "Services", icon: "Settings" }, // Updated label and icon
-    { id: "barbers", label: "Barbers", icon: "UserPlus" },
-    { id: "bookings", label: "Bookings", icon: "Calendar" },
+    { id: "appointments", label: "Appointments", icon: "Calendar" },
+    { id: "services", label: "My Services", icon: "Settings" }, // Updated label
     { id: "profile", label: "My Profile", icon: "User" },
   ];
 

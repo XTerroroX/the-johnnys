@@ -84,6 +84,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileNavigation } from '@/components/admin/MobileNavigation';
+import BarberServicesTab from '@/components/barber/BarberServicesTab';
 
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: "Service name must be at least 2 characters." }),
@@ -425,6 +426,14 @@ const AdminDashboard = () => {
                 Dashboard
               </Button>
               <Button
+                variant={activeTab === "services" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("services")}
+              >
+                <Settings className="mr-2 h-5 w-5" />
+                Services
+              </Button>
+              <Button
                 variant={activeTab === "barbers" ? "default" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => setActiveTab("barbers")}
@@ -468,6 +477,10 @@ const AdminDashboard = () => {
               </div>
               <AdminStats />
             </div>
+          )}
+
+          {activeTab === "services" && userId && (
+            <BarberServicesTab barberId={userId} />
           )}
 
           {activeTab === "barbers" && (
