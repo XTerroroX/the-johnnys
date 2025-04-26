@@ -49,27 +49,28 @@ export function BlockedTimesList({ barberId }: BlockedTimesListProps) {
   return (
     <div className="space-y-4">
       {blockedTimes.map((block) => (
-        <Card key={block.id} className="p-4">
+        <Card key={block.id} className="p-4 w-full">
           <div className="flex justify-between items-start">
-            <div>
-              <h4 className="font-semibold">{block.title}</h4>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex-grow overflow-hidden">
+              <h4 className="font-semibold truncate">{block.title}</h4>
+              <p className="text-sm text-muted-foreground truncate">
                 {format(new Date(block.start_datetime), 'MMMM d, yyyy')}
               </p>
               {block.all_day ? (
                 <p className="text-sm">All Day</p>
               ) : (
-                <p className="text-sm">
+                <p className="text-sm truncate">
                   {format(new Date(block.start_datetime), 'h:mm a')} - {format(new Date(block.end_datetime), 'h:mm a')}
                 </p>
               )}
               {block.notes && (
-                <p className="text-sm text-muted-foreground mt-2">{block.notes}</p>
+                <p className="text-sm text-muted-foreground mt-2 truncate">{block.notes}</p>
               )}
             </div>
             <Button
               variant="ghost"
               size="icon"
+              className="ml-2 flex-shrink-0"
               onClick={() => handleDelete(block.id)}
             >
               <X className="h-4 w-4" />
