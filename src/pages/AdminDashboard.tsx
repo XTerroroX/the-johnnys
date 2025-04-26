@@ -7,7 +7,8 @@ import {
   Settings, 
   LogOut, 
   Scissors, 
-  User
+  User,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -85,6 +86,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileNavigation } from '@/components/admin/MobileNavigation';
 import BarberServicesTab from '@/components/barber/BarberServicesTab';
+import { BlockedTimesTab } from '@/components/BlockedTimesTab';
 
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: "Service name must be at least 2 characters." }),
@@ -465,6 +467,14 @@ const AdminDashboard = () => {
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
               </Button>
+              <Button
+                variant={activeTab === "blocked-times" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("blocked-times")}
+              >
+                <Clock className="mr-2 h-5 w-5" />
+                Time Off
+              </Button>
             </nav>
           </div>
         </aside>
@@ -519,6 +529,10 @@ const AdminDashboard = () => {
               </div>
               {userId && <ProfileSettings userId={userId} userRole="superadmin" />}
             </div>
+          )}
+
+          {activeTab === "blocked-times" && userId && (
+            <BlockedTimesTab barberId={userId} />
           )}
         </main>
       </div>

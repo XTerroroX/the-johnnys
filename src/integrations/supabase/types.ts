@@ -94,6 +94,50 @@ export type Database = {
           },
         ]
       }
+      blocked_times: {
+        Row: {
+          all_day: boolean
+          barber_id: string
+          created_at: string
+          end_datetime: string
+          id: string
+          notes: string | null
+          start_datetime: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          barber_id: string
+          created_at?: string
+          end_datetime: string
+          id?: string
+          notes?: string | null
+          start_datetime: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          barber_id?: string
+          created_at?: string
+          end_datetime?: string
+          id?: string
+          notes?: string | null
+          start_datetime?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_times_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_notifications: {
         Row: {
           barber_id: string

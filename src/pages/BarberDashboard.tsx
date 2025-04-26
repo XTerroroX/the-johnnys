@@ -36,6 +36,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import Navbar from '@/components/Navbar';
 import BarberServicesTab from '@/components/barber/BarberServicesTab';
+import { BlockedTimesTab } from '@/components/BlockedTimesTab';
 
 const BarberDashboard = () => {
   const navigate = useNavigate();
@@ -171,6 +172,14 @@ const BarberDashboard = () => {
                 My Services
               </Button>
               <Button
+                variant={activeTab === "blocked-times" ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setActiveTab("blocked-times")}
+              >
+                <Clock className="mr-2 h-5 w-5" />
+                Time Off
+              </Button>
+              <Button
                 variant="ghost"
                 className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
                 onClick={handleLogout}
@@ -259,6 +268,17 @@ const BarberDashboard = () => {
                 >
                   <Settings className="mr-2 h-5 w-5" />
                   My Services
+                </Button>
+                <Button
+                  variant={activeTab === "blocked-times" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("blocked-times");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Clock className="mr-2 h-5 w-5" />
+                  Time Off
                 </Button>
                 <Button
                   variant="ghost"
@@ -496,6 +516,10 @@ const BarberDashboard = () => {
           
           {activeTab === "services" && userId && (
             <BarberServicesTab barberId={userId} />
+          )}
+          
+          {activeTab === "blocked-times" && userId && (
+            <BlockedTimesTab barberId={userId} />
           )}
           
           {activeTab === "profile" && (
