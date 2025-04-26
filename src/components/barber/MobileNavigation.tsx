@@ -23,6 +23,7 @@ export function MobileNavigation({ activeTab, onTabChange, onLogout }: MobileNav
     { id: "appointments", label: "Appointments", icon: "Calendar" },
     { id: "services", label: "My Services", icon: "Settings" }, // Updated label
     { id: "profile", label: "My Profile", icon: "User" },
+    { id: "blocked-times", label: "Time Off", icon: "Clock" },
   ];
 
   return (
