@@ -95,7 +95,7 @@ export function BlockTimeDialog({ barberId, onSuccess }: BlockTimeDialogProps) {
       <DialogTrigger asChild>
         <Button>Block Time Off</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[90%] max-w-md mx-auto rounded-lg p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Block Time Off</DialogTitle>
           <DialogDescription>
@@ -108,7 +108,7 @@ export function BlockTimeDialog({ barberId, onSuccess }: BlockTimeDialogProps) {
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full overflow-x-auto">
                   <FormLabel>Date</FormLabel>
                   <FormControl>
                     <Calendar
@@ -122,6 +122,7 @@ export function BlockTimeDialog({ barberId, onSuccess }: BlockTimeDialogProps) {
                         thirtyDaysFromNow.setDate(now.getDate() + 30);
                         return date < now || date > thirtyDaysFromNow;
                       }}
+                      className="w-full"
                     />
                   </FormControl>
                   <FormMessage />
