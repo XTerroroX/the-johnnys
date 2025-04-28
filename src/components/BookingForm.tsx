@@ -93,14 +93,46 @@ const BookingForm = ({
       const time24h = convertTo24Hour(selectedTime);
       const endTime = calculateEndTime(selectedTime, totalDuration);
 
-      // Pick primary service ID as first selected
-      const primaryServiceId = chosenServices.length > 0
-        ? parseInt(chosenServices[0].id.toString())
-        : null;
+      // First, check if this service exists in the services table
+      // If not, we need to create it or find the matching one
+      const primaryServiceName = chosenServices.length > 0 ? chosenServices[0].name : null;
       
-      // Validate this service exists
-      if (!primaryServiceId) {
+      if (!primaryServiceName) {
         throw new Error("Could not determine the primary service. Please try again.");
+      }
+      
+      // Find or create a matching service in the services table
+      const { data: existingService, error: serviceError } = await supabase
+        .from('services')
+        .select('id')
+        .eq('name', primaryServiceName)
+        .single();
+      
+      let serviceId;
+      
+      if (serviceError || !existingService) {
+        // Create the service if it doesn't exist
+        const newService = chosenServices[0];
+        const { data: createdService, error: createError } = await supabase
+          .from('services')
+          .insert({
+            name: newService.name,
+            price: newService.price,
+            duration: newService.duration,
+            description: newService.description,
+            active: true
+          })
+          .select()
+          .single();
+        
+        if (createError || !createdService) {
+          console.error("Error creating service:", createError);
+          throw new Error("Failed to create matching service. Please try again.");
+        }
+        
+        serviceId = createdService.id;
+      } else {
+        serviceId = existingService.id;
       }
       
       const { error } = await supabase
@@ -113,7 +145,7 @@ const BookingForm = ({
             price: svc.price,
             duration: svc.duration
           })),
-          service_id: primaryServiceId,
+          service_id: serviceId,
           date: formattedDate,
           start_time: time24h,
           end_time: endTime,
