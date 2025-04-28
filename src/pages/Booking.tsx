@@ -1,4 +1,3 @@
-
 // src/pages/Booking.tsx (or wherever your Booking component is located)
 import { useState, useEffect } from 'react';
 import { Check, Clock } from 'lucide-react';
@@ -13,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { useQuery } from '@tanstack/react-query';
+import { fetchBarberServicesWithFallback } from '@/utils/bookingUtils';
 
 type Barber = Tables<'profiles'>;
 
@@ -30,25 +30,6 @@ const fetchBarbers = async () => {
   return data || [];
 };
 
-const fetchBarberServices = async (barberId: string | null) => {
-  if (!barberId) return [];
-  
-  // Fetch from barber_services table instead of services
-  const { data, error } = await supabase
-    .from('barber_services')
-    .select('*')
-    .eq('barber_id', barberId)
-    .eq('active', true);
-    
-  if (error) {
-    console.error('Error fetching barber services:', error);
-    throw error;
-  }
-  
-  console.log('Fetched barber services:', data);
-  return data || [];
-};
-
 const Booking = () => {
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -62,7 +43,7 @@ const Booking = () => {
   
   const { data: barberServices = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['barber_services', selectedBarber],
-    queryFn: () => fetchBarberServices(selectedBarber),
+    queryFn: () => fetchBarberServicesWithFallback(selectedBarber),
     enabled: !!selectedBarber,
   });
 
@@ -71,7 +52,6 @@ const Booking = () => {
   }, []);
   
   useEffect(() => {
-    // Reset time when date changes
     if (selectedDate) {
       setSelectedTime(null);
     }
@@ -98,7 +78,6 @@ const Booking = () => {
             </div>
 
             {bookingComplete ? (
-              // Booking confirmation
               <div className="text-center py-16 animate-fade-in">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Check className="h-8 w-8 text-green-600" />
@@ -110,11 +89,8 @@ const Booking = () => {
                 <Button onClick={resetBooking}>Book Another Appointment</Button>
               </div>
             ) : (
-              // Booking flow
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column */}
                 <div className="lg:col-span-2 space-y-10">
-                  {/* Barber Selection */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Choose Your Barber</h3>
                     {isLoadingBarbers ? (
@@ -164,13 +140,11 @@ const Booking = () => {
                     )}
                   </div>
                   
-                  {/* Calendar */}
                   <BookingCalendar 
                     selectedDate={selectedDate}
                     onSelectDate={setSelectedDate}
                   />
                   
-                  {/* Time Selection */}
                   <TimeSlotPicker
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
@@ -179,7 +153,6 @@ const Booking = () => {
                   />
                 </div>
                 
-                {/* Right Column - Booking Summary & Form */}
                 <div className="glass-card p-6 h-fit sticky top-24">
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
