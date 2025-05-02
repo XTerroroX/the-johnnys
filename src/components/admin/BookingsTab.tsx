@@ -22,6 +22,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from '@/utils/bookingUtils';
 
 interface BookingsTabProps {
   searchQuery: string;
@@ -59,10 +60,42 @@ export function BookingsTab({
     
     const matchesDate = !dateFilter || booking.date === dateFilter;
     const matchesBarber = !barberFilter || booking.barber_id === barberFilter;
-    const matchesService = !serviceFilter || booking.service_id === parseInt(serviceFilter);
+    
+    // For service filtering, also check the selected_services array
+    const matchesService = !serviceFilter || 
+      booking.service_id === parseInt(serviceFilter) || 
+      (booking.selected_services && booking.selected_services.some(s => s.id === parseInt(serviceFilter)));
     
     return matchesSearch && matchesDate && matchesBarber && matchesService;
   });
+
+  // Helper function to get services display text
+  const getServicesDisplay = (booking) => {
+    if (booking.selected_services && booking.selected_services.length > 0) {
+      if (booking.selected_services.length === 1) {
+        return booking.selected_services[0].name;
+      } else {
+        return (
+          <div>
+            <div>{booking.selected_services[0].name}</div>
+            <div className="text-xs text-muted-foreground">
+              +{booking.selected_services.length - 1} more service{booking.selected_services.length > 2 ? 's' : ''}
+            </div>
+          </div>
+        );
+      }
+    }
+    return booking.service?.name || 'Unknown Service';
+  };
+
+  // Helper function to get tooltip content for services
+  const getServiceTooltip = (booking) => {
+    if (!booking.selected_services || booking.selected_services.length <= 1) return '';
+    
+    return booking.selected_services.map(s => 
+      `${s.name} (${formatCurrency(s.price)})`
+    ).join('\n');
+  };
 
   return (
     <div className="space-y-8">
@@ -146,7 +179,7 @@ export function BookingsTab({
                     <TableHead>Date</TableHead>
                     <TableHead>Time</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Service</TableHead>
+                    <TableHead>Service(s)</TableHead>
                     <TableHead>Barber</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -161,7 +194,9 @@ export function BookingsTab({
                         <div>{booking.customer_name}</div>
                         <div className="text-xs text-muted-foreground">{booking.customer_email}</div>
                       </TableCell>
-                      <TableCell>{booking.service?.name || 'Unknown Service'}</TableCell>
+                      <TableCell title={getServiceTooltip(booking)}>
+                        {getServicesDisplay(booking)}
+                      </TableCell>
                       <TableCell>{booking.barber?.name || 'Unknown Barber'}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
