@@ -72,18 +72,21 @@ export function BookingsTab({
   // Helper function to get services display text
   const getServicesDisplay = (booking) => {
     if (booking.selected_services && booking.selected_services.length > 0) {
-      if (booking.selected_services.length === 1) {
-        return booking.selected_services[0].name;
-      } else {
-        return (
-          <div>
-            <div>{booking.selected_services[0].name}</div>
-            <div className="text-xs text-muted-foreground">
-              +{booking.selected_services.length - 1} more service{booking.selected_services.length > 2 ? 's' : ''}
+      return (
+        <div>
+          {booking.selected_services.map((service, index) => (
+            <div key={service.id || index} className="flex justify-between items-center">
+              <span>{service.name}</span>
+              <span className="text-xs text-muted-foreground ml-2">{formatCurrency(service.price)}</span>
             </div>
-          </div>
-        );
-      }
+          ))}
+          {booking.selected_services.length > 1 && (
+            <div className="text-xs text-muted-foreground mt-1 pt-1 border-t">
+              Total: {formatCurrency(booking.selected_services.reduce((sum, s) => sum + parseFloat(s.price || '0'), 0))}
+            </div>
+          )}
+        </div>
+      );
     }
     return booking.service?.name || 'Unknown Service';
   };
