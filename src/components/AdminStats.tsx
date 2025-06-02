@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,10 +40,12 @@ const AdminStats: React.FC<StatsProps> = ({ period = 'month' }) => {
   };
   
   const { start, end } = getDateRange();
+  console.log('Date range for stats:', { start, end, selectedPeriod });
   
   const { data: bookings = [], isLoading: isLoadingBookings } = useQuery({
     queryKey: ['admin-bookings', start, end],
     queryFn: async () => {
+      console.log('Fetching bookings for date range:', start, 'to', end);
       const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -54,7 +57,12 @@ const AdminStats: React.FC<StatsProps> = ({ period = 'month' }) => {
         .lte('date', end)
         .order('date', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        throw error;
+      }
+      
+      console.log('Fetched bookings:', data);
       return data;
     }
   });
@@ -62,12 +70,18 @@ const AdminStats: React.FC<StatsProps> = ({ period = 'month' }) => {
   const { data: barbers = [], isLoading: isLoadingBarbers } = useQuery({
     queryKey: ['admin-barbers'],
     queryFn: async () => {
+      console.log('Fetching barbers...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'barber');
+        .in('role', ['barber', 'superadmin']);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching barbers:', error);
+        throw error;
+      }
+      
+      console.log('Fetched barbers:', data);
       return data;
     }
   });
@@ -75,42 +89,67 @@ const AdminStats: React.FC<StatsProps> = ({ period = 'month' }) => {
   const { data: services = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['admin-services'],
     queryFn: async () => {
+      console.log('Fetching services...');
       const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('active', true);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching services:', error);
+        throw error;
+      }
+      
+      console.log('Fetched services:', data);
       return data;
     }
   });
   
   // Process and calculate stats from bookings data
   const calculateStats = () => {
-    const confirmedBookings = bookings.filter(booking => booking.status === 'confirmed' || booking.status === 'completed');
+    console.log('Calculating stats with bookings:', bookings);
+    
+    // Only count confirmed and completed bookings for revenue
+    const confirmedBookings = bookings.filter(booking => 
+      booking.status === 'confirmed' || booking.status === 'completed'
+    );
+    console.log('Confirmed bookings:', confirmedBookings);
+    
     const cancelledBookings = bookings.filter(booking => booking.status === 'cancelled');
+    console.log('Cancelled bookings:', cancelledBookings);
     
     // Calculate total revenue considering multiple services per booking
     let totalRevenue = 0;
     confirmedBookings.forEach(booking => {
+      console.log('Processing booking for revenue:', booking);
+      
       // Check if booking has selected_services array for multiple services
       if (booking.selected_services && Array.isArray(booking.selected_services) && booking.selected_services.length > 0) {
+        console.log('Booking has selected_services:', booking.selected_services);
         // Sum up prices from all selected services
         booking.selected_services.forEach((serviceItem: any) => {
-          totalRevenue += parseFloat(String(serviceItem.price || '0'));
+          const price = parseFloat(String(serviceItem.price || '0'));
+          console.log('Adding service price:', price);
+          totalRevenue += price;
         });
       } else if (booking.service && booking.service.price) {
+        console.log('Booking has single service:', booking.service);
         // Fallback to single service if selected_services is not available
-        totalRevenue += parseFloat(String(booking.service.price || '0'));
+        const price = parseFloat(String(booking.service.price || '0'));
+        console.log('Adding single service price:', price);
+        totalRevenue += price;
       }
     });
     
-    return {
+    const stats = {
       totalBookings: confirmedBookings.length,
       totalRevenue,
       cancelRate: bookings.length > 0 ? (cancelledBookings.length / bookings.length) * 100 : 0,
       bookingsPerBarber: barbers.length > 0 ? confirmedBookings.length / barbers.length : 0
     };
+    
+    console.log('Calculated stats:', stats);
+    return stats;
   };
   
   const stats = calculateStats();
