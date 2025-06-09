@@ -52,10 +52,8 @@ const Booking = () => {
   }, []);
   
   useEffect(() => {
-    if (selectedDate) {
-      setSelectedTime(null);
-    }
-  }, [selectedDate]);
+    setSelectedTime(null);
+  }, [selectedDate, selectedBarber]);
 
   const resetBooking = () => {
     setSelectedBarber(null);
